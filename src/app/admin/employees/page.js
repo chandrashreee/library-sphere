@@ -14,8 +14,9 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { BadgeCheck, PencilIcon, PlusCircle, Trash2, Users } from 'lucide-react';
+import { PencilIcon, PlusCircle, Trash2, UserIcon } from 'lucide-react';
 import Link from 'next/link';
+import DeleteUserButton from '@/components/admin/DeleteUserButton';
 
 export const metadata = {
     title: 'Manage Employees - LibrarySphere',
@@ -57,10 +58,12 @@ export default async function ManageEmployeesPage() {
                             </p>
                         </div>
 
-                        <Button>
-                            <PlusCircle className="h-4 w-4 mr-2" />
-                            Add New Employee
-                        </Button>
+                        <Link href="/admin/employees/new">
+                            <Button>
+                                <PlusCircle className="h-4 w-4 mr-2" />
+                                Add New Employee
+                            </Button>
+                        </Link>
                     </div>
 
                     <Card>
@@ -73,10 +76,10 @@ export default async function ManageEmployeesPage() {
                         <CardContent>
                             {employees.length === 0 ? (
                                 <div className="text-center py-10">
-                                    <Users className="mx-auto h-12 w-12 text-muted-foreground" />
+                                    <UserIcon className="mx-auto h-12 w-12 text-muted-foreground" />
                                     <h2 className="mt-4 text-xl font-semibold">No employees found</h2>
                                     <p className="text-muted-foreground">
-                                        There are no employees registered in the system.
+                                        There are no staff members in the system.
                                     </p>
                                 </div>
                             ) : (
@@ -93,41 +96,42 @@ export default async function ManageEmployeesPage() {
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {employees.map((employee) => (
-                                                <TableRow key={employee.id}>
-                                                    <TableCell className="font-medium">{employee.code}</TableCell>
-                                                    <TableCell>{`${employee.firstName} ${employee.lastName}`}</TableCell>
-                                                    <TableCell>{employee.email}</TableCell>
-                                                    <TableCell>
-                                                        <div className="flex items-center">
-                                                            {employee.role === 'ADMIN' ? (
-                                                                <>
-                                                                    <BadgeCheck className="h-4 w-4 text-primary mr-1" />
-                                                                    <span>Administrator</span>
-                                                                </>
-                                                            ) : (
-                                                                <span>Employee</span>
-                                                            )}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>{employee.phone}</TableCell>
-                                                    <TableCell className="text-right">
-                                                        <div className="flex justify-end gap-2">
-                                                            <Button variant="ghost" size="sm">
-                                                                <PencilIcon className="h-4 w-4" />
-                                                                <span className="sr-only">Edit</span>
-                                                            </Button>
-                                                            {/* Don't allow deleting yourself */}
-                                                            {employee.id !== session.user.id && (
-                                                                <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600">
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                    <span className="sr-only">Delete</span>
-                                                                </Button>
-                                                            )}
-                                                        </div>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
+                                            {employees.map((employee) => {
+                                                // Don't allow deleting yourself
+                                                const isSelf = employee.id === session.user.id;
+
+                                                return (
+                                                    <TableRow key={employee.id}>
+                                                        <TableCell className="font-medium">{employee.code}</TableCell>
+                                                        <TableCell>{`${employee.firstName} ${employee.lastName}`}</TableCell>
+                                                        <TableCell>{employee.email}</TableCell>
+                                                        <TableCell>
+                                                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${employee.role === 'ADMIN' ?
+                                                                    'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                                                                    'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                                                                }`}>
+                                                                {employee.role.charAt(0) + employee.role.slice(1).toLowerCase()}
+                                                            </span>
+                                                        </TableCell>
+                                                        <TableCell>{employee.phone}</TableCell>
+                                                        <TableCell className="text-right">
+                                                            <div className="flex justify-end gap-2">
+                                                                <Link href={`/admin/employees/edit/${employee.id}`}>
+                                                                    <Button variant="ghost" size="sm">
+                                                                        <PencilIcon className="h-4 w-4" />
+                                                                        <span className="sr-only">Edit</span>
+                                                                    </Button>
+                                                                </Link>
+                                                                <DeleteUserButton
+                                                                    userId={employee.id}
+                                                                    userName={`${employee.firstName} ${employee.lastName}`}
+                                                                    isDisabled={isSelf}
+                                                                />
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
                                         </TableBody>
                                     </Table>
                                 </div>

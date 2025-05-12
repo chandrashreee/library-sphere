@@ -9,8 +9,9 @@ import Link from 'next/link';
 import { BookOpen, CalendarCheck, ChevronLeft } from 'lucide-react';
 
 export async function generateMetadata({ params }) {
+    const { id } = await params;
     const document = await prisma.document.findUnique({
-        where: { id: params.id },
+        where: { id },
     });
 
     if (!document) {
@@ -26,11 +27,12 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function DocumentDetailPage({ params }) {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     const isAuthenticated = !!session;
 
     const document = await prisma.document.findUnique({
-        where: { id: params.id },
+        where: { id },
     });
 
     if (!document) {
@@ -40,7 +42,7 @@ export default async function DocumentDetailPage({ params }) {
     // Check if the document is available (not all copies are loaned)
     const activeLoansCount = await prisma.loan.count({
         where: {
-            documentId: document.id,
+            documentId: id,
             actualReturnDate: null,
         },
     });
@@ -54,7 +56,7 @@ export default async function DocumentDetailPage({ params }) {
         const existingReservation = await prisma.reservation.findFirst({
             where: {
                 userId: session.user.id,
-                documentId: document.id,
+                documentId: id,
             },
         });
         hasReserved = !!existingReservation;
@@ -87,37 +89,8 @@ export default async function DocumentDetailPage({ params }) {
                                     <BookOpen className="h-24 w-24 text-muted-foreground" />
                                 )}
                             </div>
-
-                            <div className="mt-6 space-y-4">
-                                <div className="border rounded-lg p-4">
-                                    <h3 className="font-medium mb-2">Status</h3>
-                                    <div className="flex items-center">
-                                        <div className={`h-3 w-3 rounded-full mr-2 ${isAvailable ? 'bg-green-500' : 'bg-amber-500'}`} />
-                                        <span>{isAvailable ? 'Available' : 'Currently Loaned'}</span>
-                                    </div>
-                                </div>
-
-                                {isAuthenticated && (
-                                    <div className="space-y-3">
-                                        {isAvailable ? (
-                                            <Button className="w-full" size="lg">
-                                                Borrow This Document
-                                            </Button>
-                                        ) : (
-                                            <Button
-                                                className="w-full"
-                                                size="lg"
-                                                disabled={hasReserved}
-                                            >
-                                                {hasReserved ? 'Already Reserved' : 'Reserve This Document'}
-                                            </Button>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
                         </div>
 
-                        {/* Document details */}
                         <div className="md:col-span-2 order-2 md:order-2">
                             <h1 className="text-3xl font-bold mb-2">{document.title}</h1>
                             <p className="text-xl text-muted-foreground mb-6">by {document.author} ({document.year})</p>
@@ -139,50 +112,46 @@ export default async function DocumentDetailPage({ params }) {
                                 <p>{document.description}</p>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="border rounded-lg p-5">
-                                    <h3 className="font-medium mb-3 flex items-center">
-                                        <BookOpen className="h-5 w-5 mr-2 text-muted-foreground" />
-                                        Document Details
-                                    </h3>
-                                    <dl className="space-y-2">
-                                        <div className="flex justify-between">
-                                            <dt className="text-muted-foreground">Code:</dt>
-                                            <dd className="font-medium">{document.code}</dd>
-                                        </div>
-                                        {document.ISBN && (
-                                            <div className="flex justify-between">
-                                                <dt className="text-muted-foreground">ISBN:</dt>
-                                                <dd className="font-medium">{document.ISBN}</dd>
-                                            </div>
-                                        )}
-                                        <div className="flex justify-between">
-                                            <dt className="text-muted-foreground">Publication Year:</dt>
-                                            <dd className="font-medium">{document.year}</dd>
-                                        </div>
-                                    </dl>
+                            {/* Availability & Actions */}
+                            <div className="bg-muted p-4 rounded-lg mb-8">
+                                <div className="flex items-center mb-4">
+                                    <div className={`h-3 w-3 rounded-full mr-3 ${isAvailable ? 'bg-green-500' : 'bg-amber-500'}`}></div>
+                                    <span className="font-medium">{isAvailable ? 'Available for loan' : 'Currently on loan'}</span>
                                 </div>
 
-                                <div className="border rounded-lg p-5">
-                                    <h3 className="font-medium mb-3 flex items-center">
-                                        <CalendarCheck className="h-5 w-5 mr-2 text-muted-foreground" />
-                                        Loan Information
-                                    </h3>
-                                    <dl className="space-y-2">
-                                        <div className="flex justify-between">
-                                            <dt className="text-muted-foreground">Status:</dt>
-                                            <dd className="font-medium">{isAvailable ? 'Available' : 'Currently Loaned'}</dd>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <dt className="text-muted-foreground">Loan Period:</dt>
-                                            <dd className="font-medium">14 days</dd>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <dt className="text-muted-foreground">Late Fees:</dt>
-                                            <dd className="font-medium">$0.50 per day</dd>
-                                        </div>
-                                    </dl>
-                                </div>
+                                {isAuthenticated && (
+                                    <div className="flex flex-wrap gap-4">
+                                        {isAvailable && (
+                                            <Button className="flex items-center">
+                                                <BookOpen className="mr-2 h-4 w-4" />
+                                                Borrow
+                                            </Button>
+                                        )}
+
+                                        {!isAvailable && !hasReserved && (
+                                            <Button className="flex items-center">
+                                                <CalendarCheck className="mr-2 h-4 w-4" />
+                                                Reserve
+                                            </Button>
+                                        )}
+
+                                        {hasReserved && (
+                                            <Button variant="outline" disabled>
+                                                Already Reserved
+                                            </Button>
+                                        )}
+                                    </div>
+                                )}
+
+                                {!isAuthenticated && (
+                                    <div>
+                                        <Link href="/login">
+                                            <Button variant="outline">
+                                                Login to borrow or reserve
+                                            </Button>
+                                        </Link>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

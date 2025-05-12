@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/table';
 import { PencilIcon, PlusCircle, Trash2, UserIcon } from 'lucide-react';
 import Link from 'next/link';
+import DeleteUserButton from '@/components/admin/DeleteUserButton';
 
 export const metadata = {
     title: 'Manage Members - LibrarySphere',
@@ -38,6 +39,18 @@ export default async function ManageMembersPage() {
         orderBy: {
             code: 'asc',
         },
+        include: {
+            _count: {
+                select: {
+                    loans: {
+                        where: {
+                            actualReturnDate: null,
+                        },
+                    },
+                    reservations: true,
+                },
+            },
+        },
     });
 
     return (
@@ -54,10 +67,12 @@ export default async function ManageMembersPage() {
                             </p>
                         </div>
 
-                        <Button>
-                            <PlusCircle className="h-4 w-4 mr-2" />
-                            Add New Member
-                        </Button>
+                        <Link href="/admin/members/new">
+                            <Button>
+                                <PlusCircle className="h-4 w-4 mr-2" />
+                                Add New Member
+                            </Button>
+                        </Link>
                     </div>
 
                     <Card>
@@ -76,7 +91,7 @@ export default async function ManageMembersPage() {
                                         There are no registered members in the system.
                                     </p>
                                 </div>
-                            ) : (
+                            ) :
                                 <div className="overflow-x-auto">
                                     <Table>
                                         <TableHeader>
@@ -90,31 +105,40 @@ export default async function ManageMembersPage() {
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {members.map((member) => (
-                                                <TableRow key={member.id}>
-                                                    <TableCell className="font-medium">{member.code}</TableCell>
-                                                    <TableCell>{`${member.firstName} ${member.lastName}`}</TableCell>
-                                                    <TableCell>{member.email}</TableCell>
-                                                    <TableCell>{member.phone}</TableCell>
-                                                    <TableCell>{member.address?.city || 'N/A'}</TableCell>
-                                                    <TableCell className="text-right">
-                                                        <div className="flex justify-end gap-2">
-                                                            <Button variant="ghost" size="sm">
-                                                                <PencilIcon className="h-4 w-4" />
-                                                                <span className="sr-only">Edit</span>
-                                                            </Button>
-                                                            <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600">
-                                                                <Trash2 className="h-4 w-4" />
-                                                                <span className="sr-only">Delete</span>
-                                                            </Button>
-                                                        </div>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
+                                            {members.map((member) => {
+                                                const activeLoans = member._count.loans;
+                                                const reservations = member._count.reservations;
+                                                const hasActiveItems = activeLoans > 0 || reservations > 0;
+
+                                                return (
+                                                    <TableRow key={member.id}>
+                                                        <TableCell className="font-medium">{member.code}</TableCell>
+                                                        <TableCell>{`${member.firstName} ${member.lastName}`}</TableCell>
+                                                        <TableCell>{member.email}</TableCell>
+                                                        <TableCell>{member.phone}</TableCell>
+                                                        <TableCell>{member.address?.city || 'N/A'}</TableCell>
+                                                        <TableCell className="text-right">
+                                                            <div className="flex justify-end gap-2">
+                                                                <Link href={`/admin/members/edit/${member.id}`}>
+                                                                    <Button variant="ghost" size="sm">
+                                                                        <PencilIcon className="h-4 w-4" />
+                                                                        <span className="sr-only">Edit</span>
+                                                                    </Button>
+                                                                </Link>
+                                                                <DeleteUserButton
+                                                                    userId={member.id}
+                                                                    userName={`${member.firstName} ${member.lastName}`}
+                                                                    isDisabled={hasActiveItems}
+                                                                />
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
                                         </TableBody>
                                     </Table>
                                 </div>
-                            )}
+                            }
                         </CardContent>
                     </Card>
                 </div>

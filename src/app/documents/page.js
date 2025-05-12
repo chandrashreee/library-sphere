@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BookIcon, BookOpenIcon } from 'lucide-react';
+import DocumentFilters from '@/components/ui/DocumentFilters';
 
 export const metadata = {
     title: 'Documents - LibrarySphere',
@@ -51,10 +52,11 @@ export default async function DocumentsPage({ searchParams }) {
     const isAuthenticated = !!session;
 
     // Get filter values from search params
-    const category = searchParams.category ?? undefined;
-    const type = searchParams.type ?? undefined;
-    const classifying = searchParams.classifying ?? undefined;
-    const query = searchParams.q?.toLowerCase() ?? '';
+    const params = await searchParams;
+    const category = params.category ?? undefined;
+    const type = params.type ?? undefined;
+    const classifying = params.classifying ?? undefined;
+    const query = params.q?.toLowerCase() ?? '';
 
     // Fetch all documents with filters
     const documents = await prisma.document.findMany({
@@ -75,7 +77,7 @@ export default async function DocumentsPage({ searchParams }) {
         },
     });
 
-    // Get filter options
+    // Get filter options for the client component
     const categories = await getDocumentCategories();
     const types = await getDocumentTypes();
     const classifyings = await getDocumentClassifying();
@@ -91,90 +93,15 @@ export default async function DocumentsPage({ searchParams }) {
                             <h1 className="text-3xl font-bold">Documents</h1>
                             <p className="text-muted-foreground">Browse our collection of documents</p>
                         </div>
-
-                        {/* Simple search form */}
-                        <div className="w-full md:w-auto">
-                            <form className="flex gap-2 flex-wrap md:flex-nowrap">
-                                <input
-                                    type="text"
-                                    name="q"
-                                    placeholder="Search by title, author..."
-                                    defaultValue={query}
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:w-[200px] lg:w-[300px]"
-                                />
-                                <Button type="submit">Search</Button>
-                            </form>
-                        </div>
                     </div>
 
-                    {/* Filters */}
-                    <div className="mb-8 flex flex-wrap gap-4">
-                        <select
-                            name="category"
-                            onChange={(e) => {
-                                const url = new URL(window.location);
-                                url.searchParams.set('category', e.target.value);
-                                window.location = url;
-                            }}
-                            defaultValue={category || ''}
-                            className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 w-full md:w-auto"
-                        >
-                            <option value="">All Categories</option>
-                            {categories.map((cat) => (
-                                <option key={cat} value={cat}>
-                                    {cat.charAt(0) + cat.slice(1).toLowerCase().replace('_', ' ')}
-                                </option>
-                            ))}
-                        </select>
-
-                        <select
-                            name="type"
-                            onChange={(e) => {
-                                const url = new URL(window.location);
-                                url.searchParams.set('type', e.target.value);
-                                window.location = url;
-                            }}
-                            defaultValue={type || ''}
-                            className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 w-full md:w-auto"
-                        >
-                            <option value="">All Types</option>
-                            {types.map((t) => (
-                                <option key={t} value={t}>
-                                    {t.charAt(0) + t.slice(1).toLowerCase().replace('_', ' ')}
-                                </option>
-                            ))}
-                        </select>
-
-                        <select
-                            name="classifying"
-                            onChange={(e) => {
-                                const url = new URL(window.location);
-                                url.searchParams.set('classifying', e.target.value);
-                                window.location = url;
-                            }}
-                            defaultValue={classifying || ''}
-                            className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 w-full md:w-auto"
-                        >
-                            <option value="">All Age Ranges</option>
-                            {classifyings.map((c) => (
-                                <option key={c} value={c}>
-                                    {c.charAt(0) + c.slice(1).toLowerCase()}
-                                </option>
-                            ))}
-                        </select>
-
-                        {(category || type || classifying || query) && (
-                            <Button
-                                variant="outline"
-                                onClick={() => {
-                                    const url = new URL(window.location);
-                                    url.search = '';
-                                    window.location = url;
-                                }}
-                            >
-                                Clear Filters
-                            </Button>
-                        )}
+                    {/* Use the client-side filter component */}
+                    <div className="mb-8">
+                        <DocumentFilters
+                            categories={categories}
+                            types={types}
+                            classifyings={classifyings}
+                        />
                     </div>
 
                     {/* Document grid */}

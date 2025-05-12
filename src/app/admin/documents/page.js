@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/table';
 import { BookIcon, BookPlus, PencilIcon, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import DeleteDocumentButton from '@/components/admin/DeleteDocumentButton';
 
 export const metadata = {
     title: 'Manage Documents - LibrarySphere',
@@ -63,10 +64,12 @@ export default async function ManageDocumentsPage() {
                             </p>
                         </div>
 
-                        <Button>
-                            <BookPlus className="h-4 w-4 mr-2" />
-                            Add New Document
-                        </Button>
+                        <Link href="/admin/documents/new">
+                            <Button>
+                                <BookPlus className="h-4 w-4 mr-2" />
+                                Add New Document
+                            </Button>
+                        </Link>
                     </div>
 
                     <Card>
@@ -136,14 +139,17 @@ export default async function ManageDocumentsPage() {
                                                                         <span className="sr-only">View</span>
                                                                     </Button>
                                                                 </Link>
-                                                                <Button variant="ghost" size="sm">
-                                                                    <PencilIcon className="h-4 w-4" />
-                                                                    <span className="sr-only">Edit</span>
-                                                                </Button>
-                                                                <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600">
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                    <span className="sr-only">Delete</span>
-                                                                </Button>
+                                                                <Link href={`/admin/documents/edit/${document.id}`}>
+                                                                    <Button variant="ghost" size="sm">
+                                                                        <PencilIcon className="h-4 w-4" />
+                                                                        <span className="sr-only">Edit</span>
+                                                                    </Button>
+                                                                </Link>
+                                                                <DeleteDocumentButton
+                                                                    documentId={document.id}
+                                                                    documentTitle={document.title}
+                                                                    isDisabled={activeLoans > 0 || reservations > 0}
+                                                                />
                                                             </div>
                                                         </TableCell>
                                                     </TableRow>
