@@ -11,7 +11,7 @@ export default function HomePage() {
       <main className="flex-1">
         {/* Hero Section */}
         <section className="py-20 md:py-28 bg-gradient-to-b from-background to-muted">
-          <div className="container px-4 md:px-6">
+          <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center space-y-6 text-center">
               <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl md:text-6xl">
                 Welcome to <span className="text-primary">LibrarySphere</span>
@@ -33,7 +33,7 @@ export default function HomePage() {
 
         {/* Features Section */}
         <section className="py-16 md:py-24">
-          <div className="container px-4 md:px-6">
+          <div className="container mx-auto px-4 md:px-6">
             <div className="grid gap-6 md:gap-10 md:grid-cols-2 lg:grid-cols-4">
               <div className="flex flex-col items-center space-y-4 text-center">
                 <div className="p-3 rounded-full bg-primary/10">
@@ -80,7 +80,7 @@ export default function HomePage() {
 
         {/* CTA Section */}
         <section className="py-16 md:py-24 bg-muted">
-          <div className="container px-4 md:px-6">
+          <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center space-y-6 text-center">
               <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
                 Ready to Get Started?
@@ -98,7 +98,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="border-t py-6 md:py-10">
-        <div className="container px-4 md:px-6">
+        <div className="container mx-auto px-4 md:px-6">
           <div className="flex flex-col items-center justify-center gap-4 md:flex-row md:gap-6">
             <p className="text-center text-sm text-muted-foreground">
               &copy; {new Date().getFullYear()} LibrarySphere. All rights reserved.
