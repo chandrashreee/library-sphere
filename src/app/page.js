@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { BookOpenCheck, BookText, BookUser, CalendarClock } from 'lucide-react';
-import Navbar from '@/components/layout/Navbar';
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
 
 export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
+      <Header />
 
       <main className="flex-1">
         {/* Hero Section */}
@@ -96,16 +97,7 @@ export default function HomePage() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t py-6 md:py-10">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="flex flex-col items-center justify-center gap-4 md:flex-row md:gap-6">
-            <p className="text-center text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} LibrarySphere. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
