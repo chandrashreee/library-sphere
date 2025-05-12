@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import AuthForm from '@/components/auth/AuthForm';
-import Navbar from '@/components/layout/Navbar';
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
 
 export const metadata = {
     title: 'Register - LibrarySphere',
@@ -19,12 +20,13 @@ export default async function RegisterPage() {
 
     return (
         <div className="min-h-screen flex flex-col">
-            <Navbar />
+            <Header />
             <main className="flex-1 flex items-center justify-center p-6">
                 <div className="w-full max-w-md">
                     <AuthForm type="register" />
                 </div>
             </main>
+            <Footer />
         </div>
     );
 } 

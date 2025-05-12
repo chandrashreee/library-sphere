@@ -1,7 +1,8 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import Navbar from '@/components/layout/Navbar';
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -81,157 +82,161 @@ export default async function DocumentsPage({ searchParams }) {
 
     return (
         <div className="min-h-screen flex flex-col">
-            <Navbar />
+            <Header />
 
-            <main className="flex-1 container py-10">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                    <div>
-                        <h1 className="text-3xl font-bold">Documents</h1>
-                        <p className="text-muted-foreground">Browse our collection of documents</p>
+            <main className="flex-1 py-10">
+                <div className="container mx-auto px-4 md:px-6">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                        <div>
+                            <h1 className="text-3xl font-bold">Documents</h1>
+                            <p className="text-muted-foreground">Browse our collection of documents</p>
+                        </div>
+
+                        {/* Simple search form */}
+                        <div className="w-full md:w-auto">
+                            <form className="flex gap-2 flex-wrap md:flex-nowrap">
+                                <input
+                                    type="text"
+                                    name="q"
+                                    placeholder="Search by title, author..."
+                                    defaultValue={query}
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:w-[200px] lg:w-[300px]"
+                                />
+                                <Button type="submit">Search</Button>
+                            </form>
+                        </div>
                     </div>
 
-                    {/* Simple search form */}
-                    <div className="w-full md:w-auto">
-                        <form className="flex gap-2 flex-wrap md:flex-nowrap">
-                            <input
-                                type="text"
-                                name="q"
-                                placeholder="Search by title, author..."
-                                defaultValue={query}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:w-[200px] lg:w-[300px]"
-                            />
-                            <Button type="submit">Search</Button>
-                        </form>
-                    </div>
-                </div>
-
-                {/* Filters */}
-                <div className="mb-8 flex flex-wrap gap-4">
-                    <select
-                        name="category"
-                        onChange={(e) => {
-                            const url = new URL(window.location);
-                            url.searchParams.set('category', e.target.value);
-                            window.location = url;
-                        }}
-                        defaultValue={category || ''}
-                        className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 w-full md:w-auto"
-                    >
-                        <option value="">All Categories</option>
-                        {categories.map((cat) => (
-                            <option key={cat} value={cat}>
-                                {cat.charAt(0) + cat.slice(1).toLowerCase().replace('_', ' ')}
-                            </option>
-                        ))}
-                    </select>
-
-                    <select
-                        name="type"
-                        onChange={(e) => {
-                            const url = new URL(window.location);
-                            url.searchParams.set('type', e.target.value);
-                            window.location = url;
-                        }}
-                        defaultValue={type || ''}
-                        className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 w-full md:w-auto"
-                    >
-                        <option value="">All Types</option>
-                        {types.map((t) => (
-                            <option key={t} value={t}>
-                                {t.charAt(0) + t.slice(1).toLowerCase().replace('_', ' ')}
-                            </option>
-                        ))}
-                    </select>
-
-                    <select
-                        name="classifying"
-                        onChange={(e) => {
-                            const url = new URL(window.location);
-                            url.searchParams.set('classifying', e.target.value);
-                            window.location = url;
-                        }}
-                        defaultValue={classifying || ''}
-                        className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 w-full md:w-auto"
-                    >
-                        <option value="">All Age Ranges</option>
-                        {classifyings.map((c) => (
-                            <option key={c} value={c}>
-                                {c.charAt(0) + c.slice(1).toLowerCase()}
-                            </option>
-                        ))}
-                    </select>
-
-                    {(category || type || classifying || query) && (
-                        <Button
-                            variant="outline"
-                            onClick={() => {
+                    {/* Filters */}
+                    <div className="mb-8 flex flex-wrap gap-4">
+                        <select
+                            name="category"
+                            onChange={(e) => {
                                 const url = new URL(window.location);
-                                url.search = '';
+                                url.searchParams.set('category', e.target.value);
                                 window.location = url;
                             }}
+                            defaultValue={category || ''}
+                            className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 w-full md:w-auto"
                         >
-                            Clear Filters
-                        </Button>
+                            <option value="">All Categories</option>
+                            {categories.map((cat) => (
+                                <option key={cat} value={cat}>
+                                    {cat.charAt(0) + cat.slice(1).toLowerCase().replace('_', ' ')}
+                                </option>
+                            ))}
+                        </select>
+
+                        <select
+                            name="type"
+                            onChange={(e) => {
+                                const url = new URL(window.location);
+                                url.searchParams.set('type', e.target.value);
+                                window.location = url;
+                            }}
+                            defaultValue={type || ''}
+                            className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 w-full md:w-auto"
+                        >
+                            <option value="">All Types</option>
+                            {types.map((t) => (
+                                <option key={t} value={t}>
+                                    {t.charAt(0) + t.slice(1).toLowerCase().replace('_', ' ')}
+                                </option>
+                            ))}
+                        </select>
+
+                        <select
+                            name="classifying"
+                            onChange={(e) => {
+                                const url = new URL(window.location);
+                                url.searchParams.set('classifying', e.target.value);
+                                window.location = url;
+                            }}
+                            defaultValue={classifying || ''}
+                            className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 w-full md:w-auto"
+                        >
+                            <option value="">All Age Ranges</option>
+                            {classifyings.map((c) => (
+                                <option key={c} value={c}>
+                                    {c.charAt(0) + c.slice(1).toLowerCase()}
+                                </option>
+                            ))}
+                        </select>
+
+                        {(category || type || classifying || query) && (
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    const url = new URL(window.location);
+                                    url.search = '';
+                                    window.location = url;
+                                }}
+                            >
+                                Clear Filters
+                            </Button>
+                        )}
+                    </div>
+
+                    {/* Document grid */}
+                    {documents.length === 0 ? (
+                        <div className="text-center py-10">
+                            <BookIcon className="mx-auto h-12 w-12 text-muted-foreground" />
+                            <h2 className="mt-4 text-xl font-semibold">No documents found</h2>
+                            <p className="text-muted-foreground">
+                                Try changing your search criteria or check back later for new additions.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {documents.map((document) => (
+                                <Card key={document.id}>
+                                    <CardHeader>
+                                        <div className="flex items-start justify-between">
+                                            <div>
+                                                <CardTitle>{document.title}</CardTitle>
+                                                <CardDescription>{document.author} ({document.year})</CardDescription>
+                                            </div>
+                                            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10">
+                                                <BookOpenIcon className="h-4 w-4 text-primary" />
+                                            </div>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="flex flex-wrap gap-2 mb-4">
+                                            <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors">
+                                                {document.category.charAt(0) + document.category.slice(1).toLowerCase()}
+                                            </span>
+                                            <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors">
+                                                {document.type.charAt(0) + document.type.slice(1).toLowerCase()}
+                                            </span>
+                                            <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors">
+                                                {document.classifying.charAt(0) + document.classifying.slice(1).toLowerCase()}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground line-clamp-3">
+                                            {document.description}
+                                        </p>
+                                    </CardContent>
+                                    <CardFooter className="flex justify-between">
+                                        <Link href={`/documents/${document.id}`}>
+                                            <Button variant="outline" size="sm">
+                                                View Details
+                                            </Button>
+                                        </Link>
+                                        {isAuthenticated && (
+                                            <Button size="sm">
+                                                Reserve
+                                            </Button>
+                                        )}
+                                    </CardFooter>
+                                </Card>
+                            ))}
+                        </div>
                     )}
                 </div>
-
-                {/* Document grid */}
-                {documents.length === 0 ? (
-                    <div className="text-center py-10">
-                        <BookIcon className="mx-auto h-12 w-12 text-muted-foreground" />
-                        <h2 className="mt-4 text-xl font-semibold">No documents found</h2>
-                        <p className="text-muted-foreground">
-                            Try changing your search criteria or check back later for new additions.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {documents.map((document) => (
-                            <Card key={document.id}>
-                                <CardHeader>
-                                    <div className="flex items-start justify-between">
-                                        <div>
-                                            <CardTitle>{document.title}</CardTitle>
-                                            <CardDescription>{document.author} ({document.year})</CardDescription>
-                                        </div>
-                                        <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10">
-                                            <BookOpenIcon className="h-4 w-4 text-primary" />
-                                        </div>
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex flex-wrap gap-2 mb-4">
-                                        <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors">
-                                            {document.category.charAt(0) + document.category.slice(1).toLowerCase()}
-                                        </span>
-                                        <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors">
-                                            {document.type.charAt(0) + document.type.slice(1).toLowerCase()}
-                                        </span>
-                                        <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors">
-                                            {document.classifying.charAt(0) + document.classifying.slice(1).toLowerCase()}
-                                        </span>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground line-clamp-3">
-                                        {document.description}
-                                    </p>
-                                </CardContent>
-                                <CardFooter className="flex justify-between">
-                                    <Link href={`/documents/${document.id}`}>
-                                        <Button variant="outline" size="sm">
-                                            View Details
-                                        </Button>
-                                    </Link>
-                                    {isAuthenticated && (
-                                        <Button size="sm">
-                                            Reserve
-                                        </Button>
-                                    )}
-                                </CardFooter>
-                            </Card>
-                        ))}
-                    </div>
-                )}
             </main>
+
+            <Footer />
         </div>
     );
 } 
