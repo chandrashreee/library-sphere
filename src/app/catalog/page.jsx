@@ -107,6 +107,13 @@ export default function CatalogPage() {
             return;
         }
 
+        // Prevent staff from creating loans for themselves
+        const isStaff = session.user.role === 'employee' || session.user.role === 'admin';
+        if (action === "loan" && isStaff) {
+            toast.error("Staff members cannot loan books for themselves");
+            return;
+        }
+
         try {
             if (action === "loan") {
                 // Call API to create loan
@@ -120,7 +127,7 @@ export default function CatalogPage() {
                     toast.success("Document loaned successfully");
                 } else {
                     const error = await response.json();
-                    toast.error(error.message || "Failed to loan document");
+                    toast.error(error.error || "Failed to loan document");
                 }
             } else if (action === "reserve") {
                 // Call API to create reservation
@@ -134,7 +141,7 @@ export default function CatalogPage() {
                     toast.success("Reservation created successfully");
                 } else {
                     const error = await response.json();
-                    toast.error(error.message || "Failed to reserve document");
+                    toast.error(error.error || "Failed to reserve document");
                 }
             }
         } catch (error) {
@@ -244,6 +251,7 @@ export default function CatalogPage() {
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {filteredDocuments.map((document) => {
                         const isAvailable = !document.loans?.some((loan) => !loan.actualReturnDate);
+                        const isStaff = session?.user?.role === 'employee' || session?.user?.role === 'admin';
 
                         return (
                             <Card key={document.id} className="overflow-hidden">
@@ -282,12 +290,23 @@ export default function CatalogPage() {
                                 <CardFooter className="p-4 pt-0 flex gap-2">
                                     {isAvailable ? (
                                         <>
-                                            <Button
-                                                className="flex-1 bg-[#133b5c] hover:bg-[#0E2A47]"
-                                                onClick={() => handleDocumentAction(document.id, "loan")}
-                                            >
-                                                Loan
-                                            </Button>
+                                            {isStaff ? (
+                                                <Button
+                                                    className="flex-1"
+                                                    variant="outline"
+                                                    disabled
+                                                    title="Staff members cannot loan books for themselves"
+                                                >
+                                                    Staff Cannot Loan
+                                                </Button>
+                                            ) : (
+                                                <Button
+                                                    className="flex-1 bg-[#133b5c] hover:bg-[#0E2A47]"
+                                                    onClick={() => handleDocumentAction(document.id, "loan")}
+                                                >
+                                                    Loan
+                                                </Button>
+                                            )}
                                         </>
                                     ) : (
                                         <Button

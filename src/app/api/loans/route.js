@@ -92,6 +92,15 @@ export async function POST(request) {
         // If no memberId is provided, use the current user's ID (for member self-checkout)
         const targetMemberId = memberId || session.user.id;
 
+        // Prevent staff from creating loans for themselves
+        const isStaff = session.user.role === 'employee' || session.user.role === 'admin';
+        if (!memberId && isStaff) {
+            return NextResponse.json(
+                { error: 'Staff members cannot loan books for themselves' },
+                { status: 403 }
+            );
+        }
+
         // For staff creating loans for members, we need to check permissions
         if (memberId && session.user.role === 'member') {
             return NextResponse.json(
