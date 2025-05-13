@@ -111,7 +111,6 @@ export async function POST(request) {
                 },
                 reservations: {
                     where: {
-                        memberId: targetMemberId,
                         status: 'Pending',
                     },
                 },
@@ -133,10 +132,10 @@ export async function POST(request) {
             );
         }
 
-        // Check if the member already has a pending reservation for this document
+        // Check if there's already any pending reservation for this document (from any member)
         if (document.reservations.length > 0) {
             return NextResponse.json(
-                { error: 'You already have a pending reservation for this document' },
+                { error: 'This document is already reserved by another member' },
                 { status: 400 }
             );
         }
@@ -233,6 +232,109 @@ export async function PATCH(request) {
         return NextResponse.json(
             { error: 'Failed to update reservation' },
             { status: 500 }
+        );
+    }
+}
+
+// Add a new endpoint to fulfill a reservation (for staff only)
+export async function PUT(request) {
+    try {
+        const session = await getServerSession(authOptions);
+
+        if (!session) {
+            return NextResponse.json(
+                { error: 'Unauthorized' },
+                { status: 401 }
+            );
+        }
+
+        // Only staff can fulfill reservations
+        if (session.user.role === 'member') {
+            return NextResponse.json(
+                { error: 'You do not have permission to fulfill reservations' },
+                { status: 403 }
+            );
+        }
+
+        const { reservationId } = await request.json();
+
+        // Use a transaction to ensure atomicity
+        const result = await prisma.$transaction(async (tx) => {
+            // Get the reservation with document details
+            const reservation = await tx.reservation.findUnique({
+                where: { id: reservationId },
+                include: {
+                    document: true,
+                    member: true,
+                },
+            });
+
+            if (!reservation) {
+                throw new Error('Reservation not found');
+            }
+
+            if (reservation.status !== 'Pending') {
+                throw new Error('Only pending reservations can be fulfilled');
+            }
+
+            // Check if the document is available (not on loan)
+            const existingActiveLoan = await tx.loan.findFirst({
+                where: {
+                    documentId: reservation.documentId,
+                    status: 'Active',
+                },
+            });
+
+            if (existingActiveLoan) {
+                throw new Error('Document is currently on loan and cannot be fulfilled');
+            }
+
+            // Create a loan with a 30-day loan period
+            const loanDate = new Date();
+            const expectedReturnDate = new Date(loanDate);
+            expectedReturnDate.setDate(expectedReturnDate.getDate() + 30);
+
+            const loan = await tx.loan.create({
+                data: {
+                    memberId: reservation.memberId,
+                    documentId: reservation.documentId,
+                    loanDate,
+                    expectedReturnDate,
+                    status: 'Active',
+                },
+                include: {
+                    document: true,
+                    member: {
+                        select: {
+                            code: true,
+                            firstName: true,
+                            lastName: true,
+                        },
+                    },
+                },
+            });
+
+            // Update the reservation status to Fulfilled
+            const updatedReservation = await tx.reservation.update({
+                where: { id: reservationId },
+                data: {
+                    status: 'Fulfilled',
+                },
+            });
+
+            return {
+                loan,
+                reservation: updatedReservation,
+                message: 'Reservation fulfilled successfully'
+            };
+        });
+
+        return NextResponse.json(result);
+    } catch (error) {
+        console.error('Error fulfilling reservation:', error);
+        return NextResponse.json(
+            { error: error.message || 'Failed to fulfill reservation' },
+            { status: 400 }
         );
     }
 } 

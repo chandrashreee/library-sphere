@@ -73,10 +73,12 @@ model Loan {
   loanDate           DateTime      @default(now())
   expectedReturnDate DateTime
   actualReturnDate   DateTime?
+  status             String        @default("Active") // Active, Returned
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
   @@unique([memberId, documentId, loanDate])
+  @@index([documentId, status])
 }
 
 model Reservation {

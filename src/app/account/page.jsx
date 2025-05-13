@@ -64,7 +64,7 @@ export default function AccountPage() {
         );
     }
 
-    const activeLoans = loans.filter(loan => !loan.actualReturnDate);
+    const activeLoans = loans.filter(loan => loan.status === 'Active');
     const pendingReservations = reservations.filter(res => res.status === 'Pending');
 
     return (

@@ -109,75 +109,84 @@ export async function POST(request) {
             );
         }
 
-        // Check if document exists
-        const document = await prisma.document.findUnique({
-            where: { id: documentId },
-            include: {
-                loans: {
-                    where: {
-                        actualReturnDate: null,
+        // Use a transaction to ensure atomicity and prevent race conditions
+        const result = await prisma.$transaction(async (tx) => {
+            // First, check if there's an active loan for this document
+            const existingActiveLoan = await tx.loan.findFirst({
+                where: {
+                    documentId,
+                    status: 'Active',
+                },
+            });
+
+            if (existingActiveLoan) {
+                throw new Error('Document is already on loan');
+            }
+
+            // Check if document exists
+            const document = await tx.document.findUnique({
+                where: { id: documentId },
+            });
+
+            if (!document) {
+                throw new Error('Document not found');
+            }
+
+            // Check if member exists
+            const member = await tx.member.findUnique({
+                where: { id: targetMemberId },
+            });
+
+            if (!member) {
+                throw new Error('Member not found');
+            }
+
+            // Create a loan with a 30-day loan period
+            const loanDate = new Date();
+            const expectedReturnDate = new Date(loanDate);
+            expectedReturnDate.setDate(expectedReturnDate.getDate() + 30);
+
+            const loan = await tx.loan.create({
+                data: {
+                    memberId: targetMemberId,
+                    documentId,
+                    loanDate,
+                    expectedReturnDate,
+                    status: 'Active',
+                },
+                include: {
+                    document: true,
+                    member: {
+                        select: {
+                            code: true,
+                            firstName: true,
+                            lastName: true,
+                        },
                     },
                 },
-            },
-        });
+            });
 
-        if (!document) {
-            return NextResponse.json(
-                { error: 'Document not found' },
-                { status: 404 }
-            );
-        }
-
-        // Check if document is already on loan
-        if (document.loans.length > 0) {
-            return NextResponse.json(
-                { error: 'Document is already on loan' },
-                { status: 400 }
-            );
-        }
-
-        // Create a loan with a 30-day loan period
-        const loanDate = new Date();
-        const expectedReturnDate = new Date(loanDate);
-        expectedReturnDate.setDate(expectedReturnDate.getDate() + 30);
-
-        const loan = await prisma.loan.create({
-            data: {
-                memberId: targetMemberId,
-                documentId,
-                loanDate,
-                expectedReturnDate,
-            },
-            include: {
-                document: true,
-                member: {
-                    select: {
-                        code: true,
-                        firstName: true,
-                        lastName: true,
-                    },
+            // If there's a pending reservation for this document by this member, fulfill it
+            await tx.reservation.updateMany({
+                where: {
+                    memberId: targetMemberId,
+                    documentId,
+                    status: 'Pending',
                 },
-            },
+                data: {
+                    status: 'Fulfilled',
+                },
+            });
+
+            return loan;
         });
 
-        // If there's a pending reservation for this document by this member, fulfill it
-        await prisma.reservation.updateMany({
-            where: {
-                memberId: targetMemberId,
-                documentId,
-                status: 'Pending',
-            },
-            data: {
-                status: 'Fulfilled',
-            },
-        });
-
-        return NextResponse.json(loan);
+        return NextResponse.json(result);
     } catch (error) {
         console.error('Error creating loan:', error);
         return NextResponse.json(
-            { error: 'Failed to create loan' },
-            { status: 500 }
+            { error: error.message || 'Failed to create loan' },
+            { status: 400 }
         );
     }
 }
@@ -216,18 +225,19 @@ export async function PATCH(request) {
         }
 
         // Check if loan is already returned
-        if (loan.actualReturnDate) {
+        if (loan.status === 'Returned' || loan.actualReturnDate) {
             return NextResponse.json(
                 { error: 'Loan is already returned' },
                 { status: 400 }
             );
         }
 
-        // Update loan with actual return date
+        // Update loan with actual return date and status
         const updatedLoan = await prisma.loan.update({
             where: { id: loanId },
             data: {
                 actualReturnDate: new Date(),
+                status: 'Returned',
             },
             include: {
                 document: true,

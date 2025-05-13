@@ -32,7 +32,7 @@ export default function CatalogPage() {
     useEffect(() => {
         async function fetchDocuments() {
             try {
-                const response = await fetch("/api/documents");
+                const response = await fetch("/api/documents?includeReservations=true");
                 const data = await response.json();
                 setDocuments(data);
                 setFilteredDocuments(data);
@@ -100,7 +100,7 @@ export default function CatalogPage() {
         });
     };
 
-    const handleDocumentAction = async (documentId, action) => {
+    const handleDocumentAction = async (documentId, action, reservationId = null) => {
         if (!session) {
             toast.error("You must be logged in to perform this action");
             router.push("/login");
@@ -109,7 +109,7 @@ export default function CatalogPage() {
 
         // Prevent staff from creating loans for themselves
         const isStaff = session.user.role === 'employee' || session.user.role === 'admin';
-        if (action === "loan" && isStaff) {
+        if (action === "loan" && isStaff && !reservationId) {
             toast.error("Staff members cannot loan books for themselves");
             return;
         }
@@ -125,6 +125,10 @@ export default function CatalogPage() {
 
                 if (response.ok) {
                     toast.success("Document loaned successfully");
+                    // Refresh document list to update availability
+                    const docsResponse = await fetch("/api/documents?includeReservations=true");
+                    const docsData = await docsResponse.json();
+                    setDocuments(docsData);
                 } else {
                     const error = await response.json();
                     toast.error(error.error || "Failed to loan document");
@@ -139,9 +143,31 @@ export default function CatalogPage() {
 
                 if (response.ok) {
                     toast.success("Reservation created successfully");
+                    // Refresh document list to update reservation status
+                    const docsResponse = await fetch("/api/documents?includeReservations=true");
+                    const docsData = await docsResponse.json();
+                    setDocuments(docsData);
                 } else {
                     const error = await response.json();
                     toast.error(error.error || "Failed to reserve document");
+                }
+            } else if (action === "fulfill") {
+                // Call API to fulfill a reservation
+                const response = await fetch("/api/reservations", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ reservationId }),
+                });
+
+                if (response.ok) {
+                    toast.success("Reservation fulfilled successfully");
+                    // Refresh document list to update availability and reservation status
+                    const docsResponse = await fetch("/api/documents?includeReservations=true");
+                    const docsData = await docsResponse.json();
+                    setDocuments(docsData);
+                } else {
+                    const error = await response.json();
+                    toast.error(error.error || "Failed to fulfill reservation");
                 }
             }
         } catch (error) {
@@ -250,8 +276,25 @@ export default function CatalogPage() {
             {filteredDocuments.length > 0 ? (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {filteredDocuments.map((document) => {
-                        const isAvailable = !document.loans?.some((loan) => !loan.actualReturnDate);
+                        const isAvailable = !document.loans?.some(loan => loan.status === 'Active');
                         const isStaff = session?.user?.role === 'employee' || session?.user?.role === 'admin';
+
+                        // Check if document has pending reservations
+                        const pendingReservation = document.reservations?.find(res =>
+                            res.status === 'Pending'
+                        );
+
+                        // For staff: check if a reservation can be fulfilled (document is available and has pending reservation)
+                        const canFulfillReservation = isStaff && isAvailable && pendingReservation;
+
+                        // For members: check if this document is already reserved by someone else
+                        const isReservedByOthers = pendingReservation &&
+                            (!session || pendingReservation.memberId !== session.user.id);
+
+                        // For members: check if this document is reserved by the current user
+                        const isReservedByUser = session &&
+                            pendingReservation &&
+                            pendingReservation.memberId === session.user.id;
 
                         return (
                             <Card key={document.id} className="overflow-hidden">
@@ -267,6 +310,14 @@ export default function CatalogPage() {
                                             className="absolute right-2 top-2"
                                         >
                                             Unavailable
+                                        </Badge>
+                                    )}
+                                    {pendingReservation && (
+                                        <Badge
+                                            variant="secondary"
+                                            className="absolute left-2 top-2 bg-amber-100 text-amber-800 hover:bg-amber-100"
+                                        >
+                                            Reserved
                                         </Badge>
                                     )}
                                 </div>
@@ -288,9 +339,27 @@ export default function CatalogPage() {
                                     <p className="text-sm line-clamp-2">{document.description}</p>
                                 </CardContent>
                                 <CardFooter className="p-4 pt-0 flex gap-2">
-                                    {isAvailable ? (
+                                    {/* For staff with ability to fulfill a reservation */}
+                                    {canFulfillReservation ? (
+                                        <Button
+                                            className="flex-1 bg-green-600 hover:bg-green-700"
+                                            onClick={() => handleDocumentAction(document.id, "fulfill", pendingReservation.id)}
+                                        >
+                                            Fulfill Reservation
+                                        </Button>
+                                    ) : isAvailable ? (
                                         <>
-                                            {isStaff ? (
+                                            {/* Document is available but might be reserved */}
+                                            {isReservedByOthers ? (
+                                                <Button
+                                                    className="flex-1"
+                                                    variant="outline"
+                                                    disabled
+                                                    title="This document is reserved by another member"
+                                                >
+                                                    Reserved by Member
+                                                </Button>
+                                            ) : isStaff ? (
                                                 <Button
                                                     className="flex-1"
                                                     variant="outline"
@@ -309,13 +378,34 @@ export default function CatalogPage() {
                                             )}
                                         </>
                                     ) : (
-                                        <Button
-                                            className="flex-1"
-                                            variant="outline"
-                                            onClick={() => handleDocumentAction(document.id, "reserve")}
-                                        >
-                                            Reserve
-                                        </Button>
+                                        <>
+                                            {/* Document is unavailable */}
+                                            {isReservedByUser ? (
+                                                <Button
+                                                    className="flex-1"
+                                                    variant="outline"
+                                                    disabled
+                                                >
+                                                    You've Reserved This
+                                                </Button>
+                                            ) : isReservedByOthers ? (
+                                                <Button
+                                                    className="flex-1"
+                                                    variant="outline"
+                                                    disabled
+                                                >
+                                                    Already Reserved
+                                                </Button>
+                                            ) : (
+                                                <Button
+                                                    className="flex-1"
+                                                    variant="outline"
+                                                    onClick={() => handleDocumentAction(document.id, "reserve")}
+                                                >
+                                                    Reserve
+                                                </Button>
+                                            )}
+                                        </>
                                     )}
                                 </CardFooter>
                             </Card>

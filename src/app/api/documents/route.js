@@ -3,20 +3,41 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(request) {
     try {
+        const url = new URL(request.url);
+        const includeReservations = url.searchParams.get('includeReservations') === 'true';
+
         const documents = await prisma.document.findMany({
             include: {
                 loans: {
                     where: {
-                        actualReturnDate: null,
+                        status: 'Active',
                     },
                     select: {
                         id: true,
-                        actualReturnDate: true,
+                        status: true,
+                        memberId: true,
                     },
                 },
-                reservations: {
+                reservations: includeReservations ? {
+                    where: {
+                        status: 'Pending',
+                    },
+                    select: {
+                        id: true,
+                        status: true,
+                        memberId: true,
+                        member: {
+                            select: {
+                                id: true,
+                                firstName: true,
+                                lastName: true,
+                                code: true,
+                            }
+                        }
+                    },
+                } : {
                     where: {
                         status: 'Pending',
                     },
