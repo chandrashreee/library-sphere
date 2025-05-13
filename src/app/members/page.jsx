@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Search, UserPlus, Users, Eye, Edit, Trash2, Plus, X, Check } from "lucide-react";
+import { Search, UserPlus, Users, Eye, Edit, Trash2, Plus, X, Check, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +29,11 @@ export default function MembersPage() {
     const [filteredMembers, setFilteredMembers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+
+    // Loading states for buttons
+    const [isAddLoading, setIsAddLoading] = useState(false);
+    const [isEditLoading, setIsEditLoading] = useState(false);
+    const [isDeleteLoading, setIsDeleteLoading] = useState(false);
 
     // State for dialogs
     const [selectedMember, setSelectedMember] = useState(null);
@@ -155,6 +160,7 @@ export default function MembersPage() {
             return;
         }
 
+        setIsAddLoading(true);
         try {
             const response = await fetch("/api/members", {
                 method: "POST",
@@ -179,6 +185,8 @@ export default function MembersPage() {
         } catch (error) {
             console.error("Error adding member:", error);
             toast.error(error.message || "Failed to add member");
+        } finally {
+            setIsAddLoading(false);
         }
     };
 
@@ -191,6 +199,7 @@ export default function MembersPage() {
             return;
         }
 
+        setIsEditLoading(true);
         try {
             const response = await fetch("/api/members", {
                 method: "PATCH",
@@ -222,10 +231,13 @@ export default function MembersPage() {
         } catch (error) {
             console.error("Error updating member:", error);
             toast.error(error.message || "Failed to update member");
+        } finally {
+            setIsEditLoading(false);
         }
     };
 
     const handleDeleteSubmit = async () => {
+        setIsDeleteLoading(true);
         try {
             const response = await fetch(`/api/members?id=${selectedMember.id}`, {
                 method: "DELETE"
@@ -242,6 +254,8 @@ export default function MembersPage() {
         } catch (error) {
             console.error("Error deleting member:", error);
             toast.error(error.message || "Failed to delete member");
+        } finally {
+            setIsDeleteLoading(false);
         }
     };
 
@@ -422,6 +436,7 @@ export default function MembersPage() {
                                     value={formData.firstName}
                                     onChange={handleFormChange}
                                     required
+                                    disabled={isAddLoading}
                                 />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
@@ -433,6 +448,7 @@ export default function MembersPage() {
                                     value={formData.lastName}
                                     onChange={handleFormChange}
                                     required
+                                    disabled={isAddLoading}
                                 />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
@@ -445,6 +461,7 @@ export default function MembersPage() {
                                     value={formData.email}
                                     onChange={handleFormChange}
                                     required
+                                    disabled={isAddLoading}
                                 />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
@@ -457,6 +474,7 @@ export default function MembersPage() {
                                     value={formData.password}
                                     onChange={handleFormChange}
                                     required
+                                    disabled={isAddLoading}
                                 />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
@@ -468,6 +486,7 @@ export default function MembersPage() {
                                     value={formData.phone}
                                     onChange={handleFormChange}
                                     required
+                                    disabled={isAddLoading}
                                 />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
@@ -479,6 +498,7 @@ export default function MembersPage() {
                                     value={formData.street}
                                     onChange={handleFormChange}
                                     required
+                                    disabled={isAddLoading}
                                 />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
@@ -490,6 +510,7 @@ export default function MembersPage() {
                                     value={formData.city}
                                     onChange={handleFormChange}
                                     required
+                                    disabled={isAddLoading}
                                 />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
@@ -501,17 +522,36 @@ export default function MembersPage() {
                                     value={formData.province}
                                     onChange={handleFormChange}
                                     required
+                                    disabled={isAddLoading}
                                 />
                             </div>
                         </div>
 
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsAddDialogOpen(false)}
+                                disabled={isAddLoading}
+                            >
                                 Cancel
                             </Button>
-                            <Button type="submit" className="bg-[#133b5c] hover:bg-[#0E2A47]">
-                                <Plus className="mr-2 h-4 w-4" />
-                                Add Member
+                            <Button
+                                type="submit"
+                                className="bg-[#133b5c] hover:bg-[#0E2A47]"
+                                disabled={isAddLoading}
+                            >
+                                {isAddLoading ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Adding...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        Add Member
+                                    </>
+                                )}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -544,6 +584,7 @@ export default function MembersPage() {
                                         value={formData.firstName}
                                         onChange={handleFormChange}
                                         required
+                                        disabled={isEditLoading}
                                     />
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
@@ -555,6 +596,7 @@ export default function MembersPage() {
                                         value={formData.lastName}
                                         onChange={handleFormChange}
                                         required
+                                        disabled={isEditLoading}
                                     />
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
@@ -567,6 +609,7 @@ export default function MembersPage() {
                                         value={formData.email}
                                         onChange={handleFormChange}
                                         required
+                                        disabled={isEditLoading}
                                     />
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
@@ -579,6 +622,7 @@ export default function MembersPage() {
                                         value={formData.password}
                                         onChange={handleFormChange}
                                         placeholder="Leave blank to keep current password"
+                                        disabled={isEditLoading}
                                     />
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
@@ -590,6 +634,7 @@ export default function MembersPage() {
                                         value={formData.phone}
                                         onChange={handleFormChange}
                                         required
+                                        disabled={isEditLoading}
                                     />
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
@@ -601,6 +646,7 @@ export default function MembersPage() {
                                         value={formData.street}
                                         onChange={handleFormChange}
                                         required
+                                        disabled={isEditLoading}
                                     />
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
@@ -612,6 +658,7 @@ export default function MembersPage() {
                                         value={formData.city}
                                         onChange={handleFormChange}
                                         required
+                                        disabled={isEditLoading}
                                     />
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
@@ -623,17 +670,36 @@ export default function MembersPage() {
                                         value={formData.province}
                                         onChange={handleFormChange}
                                         required
+                                        disabled={isEditLoading}
                                     />
                                 </div>
                             </div>
 
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setIsEditDialogOpen(false)}
+                                    disabled={isEditLoading}
+                                >
                                     Cancel
                                 </Button>
-                                <Button type="submit" className="bg-[#133b5c] hover:bg-[#0E2A47]">
-                                    <Check className="mr-2 h-4 w-4" />
-                                    Save Changes
+                                <Button
+                                    type="submit"
+                                    className="bg-[#133b5c] hover:bg-[#0E2A47]"
+                                    disabled={isEditLoading}
+                                >
+                                    {isEditLoading ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Check className="mr-2 h-4 w-4" />
+                                            Save Changes
+                                        </>
+                                    )}
                                 </Button>
                             </DialogFooter>
                         </form>
@@ -667,17 +733,31 @@ export default function MembersPage() {
                     )}
 
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsDeleteDialogOpen(false)}
+                            disabled={isDeleteLoading}
+                        >
                             Cancel
                         </Button>
                         <Button
                             type="button"
                             variant="destructive"
                             onClick={handleDeleteSubmit}
-                            disabled={selectedMember && (selectedMember.loans?.length > 0)}
+                            disabled={isDeleteLoading || (selectedMember && (selectedMember.loans?.length > 0))}
                         >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete Member
+                            {isDeleteLoading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : (
+                                <>
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete Member
+                                </>
+                            )}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
