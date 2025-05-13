@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { Search, CalendarClock, Check, X } from "lucide-react";
+import { Search, CalendarClock, Check, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,8 @@ export default function ReservationsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [documentAvailability, setDocumentAvailability] = useState({});
+    const [loadingReservationId, setLoadingReservationId] = useState(null);
+    const [loadingAction, setLoadingAction] = useState(null);
 
     useEffect(() => {
         async function fetchReservations() {
@@ -88,6 +90,9 @@ export default function ReservationsPage() {
 
     const handleFulfillReservation = async (reservationId) => {
         try {
+            setLoadingReservationId(reservationId);
+            setLoadingAction('fulfill');
+
             const response = await fetch("/api/reservations", {
                 method: "PUT",
                 headers: {
@@ -132,11 +137,17 @@ export default function ReservationsPage() {
         } catch (error) {
             console.error("Error fulfilling reservation:", error);
             toast.error(error.message || "Failed to fulfill reservation");
+        } finally {
+            setLoadingReservationId(null);
+            setLoadingAction(null);
         }
     };
 
     const handleCancelReservation = async (reservationId) => {
         try {
+            setLoadingReservationId(reservationId);
+            setLoadingAction('cancel');
+
             const response = await fetch("/api/reservations", {
                 method: "PATCH",
                 headers: {
@@ -167,6 +178,9 @@ export default function ReservationsPage() {
         } catch (error) {
             console.error("Error cancelling reservation:", error);
             toast.error(error.message || "Failed to cancel reservation");
+        } finally {
+            setLoadingReservationId(null);
+            setLoadingAction(null);
         }
     };
 
@@ -233,6 +247,9 @@ export default function ReservationsPage() {
                                 const isPending = reservation.status === "Pending";
                                 const isDocumentAvailable = documentAvailability[reservation.documentId];
 
+                                const isFulfillLoading = loadingReservationId === reservation.id && loadingAction === 'fulfill';
+                                const isCancelLoading = loadingReservationId === reservation.id && loadingAction === 'cancel';
+
                                 return (
                                     <TableRow key={reservation.id}>
                                         <TableCell className="font-medium">
@@ -286,20 +303,39 @@ export default function ReservationsPage() {
                                                         size="sm"
                                                         onClick={() => handleFulfillReservation(reservation.id)}
                                                         className="h-8 gap-1"
-                                                        disabled={!isDocumentAvailable}
+                                                        disabled={!isDocumentAvailable || isFulfillLoading || isCancelLoading}
                                                         title={!isDocumentAvailable ? "Document is currently on loan" : ""}
                                                     >
-                                                        <Check className="h-4 w-4" />
-                                                        <span>Fulfill</span>
+                                                        {isFulfillLoading ? (
+                                                            <>
+                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                                <span>Fulfilling...</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Check className="h-4 w-4" />
+                                                                <span>Fulfill</span>
+                                                            </>
+                                                        )}
                                                     </Button>
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
                                                         onClick={() => handleCancelReservation(reservation.id)}
                                                         className="h-8 gap-1"
+                                                        disabled={isFulfillLoading || isCancelLoading}
                                                     >
-                                                        <X className="h-4 w-4" />
-                                                        <span>Cancel</span>
+                                                        {isCancelLoading ? (
+                                                            <>
+                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                                <span>Cancelling...</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <X className="h-4 w-4" />
+                                                                <span>Cancel</span>
+                                                            </>
+                                                        )}
                                                     </Button>
                                                 </div>
                                             )}

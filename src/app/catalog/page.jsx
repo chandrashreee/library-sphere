@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Search, Filter, BookOpen } from "lucide-react";
+import { Search, Filter, BookOpen, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,8 @@ export default function CatalogPage() {
         classifying: "all-ratings",
         type: "all-genres",
     });
+    const [loadingDocumentId, setLoadingDocumentId] = useState(null);
+    const [loadingAction, setLoadingAction] = useState(null);
 
     // Categories, Classifications, and Types for filtering
     const categories = ["Novel", "Comics", "VideoGame", "Film"];
@@ -114,6 +116,10 @@ export default function CatalogPage() {
             return;
         }
 
+        // Set loading state
+        setLoadingDocumentId(documentId);
+        setLoadingAction(action);
+
         try {
             if (action === "loan") {
                 // Call API to create loan
@@ -173,6 +179,10 @@ export default function CatalogPage() {
         } catch (error) {
             console.error(`Failed to ${action} document:`, error);
             toast.error(`An error occurred while processing your ${action} request`);
+        } finally {
+            // Clear loading state
+            setLoadingDocumentId(null);
+            setLoadingAction(null);
         }
     };
 
@@ -301,6 +311,12 @@ export default function CatalogPage() {
                             loan.status === 'Active' && loan.memberId === session.user.id
                         );
 
+                        // Check if this document is currently in a loading state
+                        const isLoading = loadingDocumentId === document.id;
+                        const isLoanLoading = isLoading && loadingAction === 'loan';
+                        const isReserveLoading = isLoading && loadingAction === 'reserve';
+                        const isFulfillLoading = isLoading && loadingAction === 'fulfill';
+
                         return (
                             <Card key={document.id} className="overflow-hidden">
                                 <div className="aspect-[2/3] relative">
@@ -349,8 +365,16 @@ export default function CatalogPage() {
                                         <Button
                                             className="flex-1 bg-green-600 hover:bg-green-700"
                                             onClick={() => handleDocumentAction(document.id, "fulfill", pendingReservation.id)}
+                                            disabled={isFulfillLoading}
                                         >
-                                            Fulfill Reservation
+                                            {isFulfillLoading ? (
+                                                <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Fulfilling...
+                                                </>
+                                            ) : (
+                                                "Fulfill Reservation"
+                                            )}
                                         </Button>
                                     ) : isAvailable ? (
                                         <>
@@ -377,8 +401,16 @@ export default function CatalogPage() {
                                                 <Button
                                                     className="flex-1 bg-[#133b5c] hover:bg-[#0E2A47]"
                                                     onClick={() => handleDocumentAction(document.id, "loan")}
+                                                    disabled={isLoanLoading}
                                                 >
-                                                    Loan
+                                                    {isLoanLoading ? (
+                                                        <>
+                                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                            Loaning...
+                                                        </>
+                                                    ) : (
+                                                        "Loan"
+                                                    )}
                                                 </Button>
                                             )}
                                         </>
@@ -414,8 +446,16 @@ export default function CatalogPage() {
                                                     className="flex-1"
                                                     variant="outline"
                                                     onClick={() => handleDocumentAction(document.id, "reserve")}
+                                                    disabled={isReserveLoading}
                                                 >
-                                                    Reserve
+                                                    {isReserveLoading ? (
+                                                        <>
+                                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                            Reserving...
+                                                        </>
+                                                    ) : (
+                                                        "Reserve"
+                                                    )}
                                                 </Button>
                                             )}
                                         </>
