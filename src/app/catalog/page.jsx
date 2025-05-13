@@ -19,9 +19,9 @@ export default function CatalogPage() {
     const [filteredDocuments, setFilteredDocuments] = useState([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [filters, setFilters] = useState({
-        category: "",
-        classifying: "",
-        type: "",
+        category: "all-categories",
+        classifying: "all-ratings",
+        type: "all-genres",
     });
 
     // Categories, Classifications, and Types for filtering
@@ -63,17 +63,17 @@ export default function CatalogPage() {
         }
 
         // Apply category filter
-        if (filters.category) {
+        if (filters.category && filters.category !== "all-categories") {
             results = results.filter((doc) => doc.category === filters.category);
         }
 
         // Apply classification filter
-        if (filters.classifying) {
+        if (filters.classifying && filters.classifying !== "all-ratings") {
             results = results.filter((doc) => doc.classifying === filters.classifying);
         }
 
         // Apply type filter
-        if (filters.type) {
+        if (filters.type && filters.type !== "all-genres") {
             results = results.filter((doc) => doc.type === filters.type);
         }
 
@@ -94,9 +94,9 @@ export default function CatalogPage() {
     const resetFilters = () => {
         setSearchQuery("");
         setFilters({
-            category: "",
-            classifying: "",
-            type: "",
+            category: "all-categories",
+            classifying: "all-ratings",
+            type: "all-genres",
         });
     };
 
@@ -189,7 +189,7 @@ export default function CatalogPage() {
                             <SelectValue placeholder="Category" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">All Categories</SelectItem>
+                            <SelectItem value="all-categories">All Categories</SelectItem>
                             {categories.map((category) => (
                                 <SelectItem key={category} value={category}>
                                     {category}
@@ -203,7 +203,7 @@ export default function CatalogPage() {
                             <SelectValue placeholder="Age Rating" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">All Ratings</SelectItem>
+                            <SelectItem value="all-ratings">All Ratings</SelectItem>
                             {classifications.map((classification) => (
                                 <SelectItem key={classification} value={classification}>
                                     {classification}
@@ -217,7 +217,7 @@ export default function CatalogPage() {
                             <SelectValue placeholder="Genre" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">All Genres</SelectItem>
+                            <SelectItem value="all-genres">All Genres</SelectItem>
                             {types.map((type) => (
                                 <SelectItem key={type} value={type}>
                                     {type}

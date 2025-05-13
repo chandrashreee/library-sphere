@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export default function LoginPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const callbackUrl = searchParams.get("callbackUrl") || "/catalog";
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
         email: "",
@@ -34,14 +36,13 @@ export default function LoginPage() {
 
             if (result.error) {
                 toast.error("Invalid email or password");
+                setIsLoading(false);
             } else {
                 toast.success("Login successful!");
-                router.push("/catalog");
-                router.refresh();
+                window.location.href = callbackUrl;
             }
         } catch (error) {
             toast.error("An error occurred during login");
-        } finally {
             setIsLoading(false);
         }
     };

@@ -3,27 +3,31 @@ import { getToken } from 'next-auth/jwt';
 
 export async function middleware(request) {
     const { pathname } = request.nextUrl;
-    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+    const token = await getToken({
+        req: request,
+        secret: 'LibrarySphere_Default_Secret_For_Development'
+    });
 
-    // Public routes that anyone can access
+    // Public routes that anyone can access without auth
     const publicPaths = ['/login', '/api/auth'];
     const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
 
-    // If it's the root path, redirect to login if not logged in
+    // Root path handling
     if (pathname === '/') {
         return token
             ? NextResponse.redirect(new URL('/catalog', request.url))
             : NextResponse.redirect(new URL('/login', request.url));
     }
 
-    // If accessing public path and logged in, redirect to catalog
-    if (isPublicPath && token) {
+    // Redirect from login page if authenticated
+    if (pathname === '/login' && token) {
         return NextResponse.redirect(new URL('/catalog', request.url));
     }
 
-    // If trying to access protected path without being logged in
+    // Redirect to login if accessing protected route without auth
     if (!isPublicPath && !token) {
-        return NextResponse.redirect(new URL('/login', request.url));
+        const loginUrl = new URL('/login', request.url);
+        return NextResponse.redirect(loginUrl);
     }
 
     // Role-based access control
