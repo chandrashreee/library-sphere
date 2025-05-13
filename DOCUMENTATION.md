@@ -2411,6 +2411,325 @@ The member management system enables:
    - Screen reader compatibility
    - Responsive design for all devices
 
+### Staff Administration
+
+The Staff Administration system manages library employees and administrators, providing tools for account management, access control, and administrative functions.
+
+#### Overview
+
+The staff administration system enables:
+
+- Managing employee accounts with different roles
+- Controlling access to administrative functions
+- Providing staff-specific interfaces and workflows
+- Separating staff and member access
+- Supporting administrative oversight
+
+#### Implementation Details
+
+1. **Employee Data Model**
+   
+   The Employee entity is defined in the Prisma schema as:
+   
+   ```prisma
+   model Employee {
+     id                 String        @id @default(auto()) @map("_id") @db.ObjectId
+     code               String        @unique
+     firstName          String
+     lastName           String
+     street             String
+     city               String
+     province           String
+     phone              String
+     email              String        @unique
+     password           String
+     role               String        // employee or admin
+     createdAt          DateTime      @default(now())
+     updatedAt          DateTime      @updatedAt
+   }
+   ```
+   
+   Key features of the model:
+   - Unique employee code for identification
+   - Personal and contact information
+   - Email and password for authentication
+   - Role field to distinguish between regular employees and administrators
+   - Timestamps for creation and updates
+
+2. **Employee API Endpoints**
+   
+   Employee operations are handled by the `/api/employees` endpoint:
+   
+   - `GET /api/employees`: Retrieve employees with optional filtering
+   - `GET /api/employees/:id`: Get a specific employee's details
+   - `POST /api/employees`: Create a new employee
+   - `PUT /api/employees/:id`: Update employee information
+   - `DELETE /api/employees/:id`: Delete an employee (admin-only)
+
+3. **Staff Authentication**
+   
+   Staff authenticate using NextAuth.js with a credentials provider:
+   
+   ```javascript
+   // NextAuth configuration for staff
+   export const authOptions = {
+     providers: [
+       CredentialsProvider({
+         name: "Credentials",
+         credentials: {
+           email: { label: "Email", type: "email" },
+           password: { label: "Password", type: "password" },
+           role: { label: "Role", type: "text" }
+         },
+         async authorize(credentials) {
+           if (!credentials?.email || !credentials?.password || !credentials?.role) {
+             return null;
+           }
+           
+           // Member login logic...
+           
+           // Check if logging in as staff
+           if (credentials.role === "staff") {
+             const employee = await prisma.employee.findUnique({
+               where: { email: credentials.email }
+             });
+             
+             if (!employee) return null;
+             
+             const passwordMatch = await bcrypt.compare(credentials.password, employee.password);
+             
+             if (!passwordMatch) return null;
+             
+             return {
+               id: employee.id,
+               email: employee.email,
+               name: `${employee.firstName} ${employee.lastName}`,
+               role: employee.role // 'employee' or 'admin'
+             };
+           }
+         }
+       })
+     ],
+     callbacks: {
+       jwt: async ({ token, user }) => {
+         if (user) {
+           token.id = user.id;
+           token.role = user.role;
+         }
+         return token;
+       },
+       session: async ({ session, token }) => {
+         if (token) {
+           session.user.id = token.id;
+           session.user.role = token.role;
+         }
+         return session;
+       }
+     },
+     // Additional configuration...
+   };
+   ```
+
+4. **Role-Based Access Control**
+   
+   Role-based permissions are enforced at multiple levels:
+   
+   ```javascript
+   // Middleware for protected API routes
+   export async function apiAuthMiddleware(req, res, next) {
+     const session = await getServerSession(req, res, authOptions);
+     
+     if (!session) {
+       return res.status(401).json({ error: "Unauthorized" });
+     }
+     
+     // Check for admin-only routes
+     if (req.url.startsWith("/api/employees") && req.method !== "GET") {
+       if (session.user.role !== "admin") {
+         return res.status(403).json({ error: "Admin privileges required" });
+       }
+     }
+     
+     req.user = session.user;
+     return next();
+   }
+   ```
+
+5. **Employees Page Implementation**
+   
+   The Employees page (`src/app/employees/page.jsx`) provides:
+   
+   - List of all library staff (admin-only view)
+   - Search and filtering capabilities
+   - Staff detail view
+   - Role management
+   - Add, edit, and delete functions
+
+#### Business Rules
+
+1. **Staff Roles**
+   
+   The system supports two staff roles:
+   
+   - **Employee**: Regular staff with document, loan, and member management abilities
+   - **Admin**: Administrators with additional employee management and system configuration capabilities
+
+2. **Role Permissions**
+   
+   Access permissions are structured hierarchically:
+   
+   - Regular employees can:
+     - View and manage documents
+     - Process loans and returns
+     - View and manage member accounts
+     - Process reservations
+   
+   - Administrators can perform all employee functions plus:
+     - Manage employee accounts
+     - Change employee roles
+     - Access system configuration
+     - View system reports and statistics
+
+3. **Account Security**
+   
+   Staff account security is prioritized:
+   
+   - Strong password requirements
+   - Role separation for administrative actions
+   - Audit logging for sensitive operations
+   - Session management with appropriate timeouts
+
+#### User Interfaces
+
+1. **Staff Dashboard**
+   
+   - Role-specific dashboard view
+   - Quick access to common functions
+   - Activity statistics and pending actions
+   - Navigation to administrative areas
+
+2. **Employee Management Interface**
+   
+   Admin-only interface for:
+   
+   - Viewing all employees
+   - Adding new staff accounts
+   - Modifying existing accounts
+   - Role assignment
+   - Account deactivation
+
+3. **Administrative Tools**
+   
+   Additional interfaces for system management:
+   
+   - System logs and activity reports
+   - Circulation statistics
+   - Collection management tools
+   - Configuration settings
+
+#### Implementation Patterns
+
+1. **Component Access Control**
+   
+   UI components are conditionally rendered based on role:
+   
+   ```javascript
+   // Example of role-based UI rendering
+   {session?.user.role === "admin" && (
+     <Button onClick={openEmployeeManagement}>
+       Manage Employees
+     </Button>
+   )}
+   ```
+
+2. **Route Protection**
+   
+   Routes are protected using middleware:
+   
+   ```javascript
+   // Middleware.js - Protecting admin routes
+   export function middleware(request) {
+     const { pathname } = request.nextUrl;
+     
+     // Get session from cookie
+     const session = getSessionFromCookie(request);
+     
+     // Protect employee management routes
+     if (pathname.startsWith("/employees") && (!session || session.user.role !== "admin")) {
+       return NextResponse.redirect(new URL("/login", request.url));
+     }
+     
+     return NextResponse.next();
+   }
+   ```
+
+3. **API Authorization**
+   
+   API endpoints verify appropriate permissions:
+   
+   ```javascript
+   // Employee API route handler
+   export async function handler(req, res) {
+     const session = await getServerSession(req, res, authOptions);
+     
+     // Check authentication
+     if (!session) {
+       return res.status(401).json({ error: "Unauthorized" });
+     }
+     
+     // Admin-only operations
+     if (req.method !== "GET" && session.user.role !== "admin") {
+       return res.status(403).json({ error: "Admin privileges required" });
+     }
+     
+     // Process the request...
+   }
+   ```
+
+#### Security Considerations
+
+1. **Principle of Least Privilege**
+   
+   - Staff accounts have only the permissions needed for their role
+   - Critical operations require elevated privileges
+   - Sensitive data access is restricted
+
+2. **Administrative Safeguards**
+   
+   - Critical actions require confirmation
+   - Account lockout after failed authentication attempts
+   - Session timeout for inactivity
+
+3. **Audit and Compliance**
+   
+   - Actions by staff are tracked
+   - Administrative operations are logged
+   - Password policies enforced
+   - Regular security reviews
+
+#### User Experience for Staff
+
+1. **Efficient Workflows**
+   
+   - Streamlined interfaces for common tasks
+   - Batch operations for efficiency
+   - Keyboard shortcuts for frequent actions
+   - Quick search and filters for finding information
+
+2. **Role-Appropriate Information**
+   
+   - Dashboards customized to role needs
+   - Relevant notifications and alerts
+   - Task prioritization based on role
+   - Access to appropriate reports and statistics
+
+3. **Training and Support**
+   
+   - Intuitive interface design
+   - Contextual help and tooltips
+   - Clear error messages and resolution steps
+   - Future enhancement: integrated help system
+
 ## API Reference
 
 *Sections to be completed*
