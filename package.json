@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "lsof -ti:3000,3001 | xargs kill -9 2>/dev/null || true && rm -rf .next && npx prisma generate && next dev --turbopack",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "seed": "node prisma/seed.js"
