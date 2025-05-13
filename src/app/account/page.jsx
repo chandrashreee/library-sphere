@@ -19,13 +19,13 @@ export default function AccountPage() {
             if (!session?.user) return;
 
             try {
-                // Fetch active loans
-                const loansResponse = await fetch("/api/loans");
+                // Fetch active loans - only show the current user's loans
+                const loansResponse = await fetch("/api/loans?onlyUserLoans=true");
                 if (!loansResponse.ok) throw new Error("Failed to fetch loans");
                 const loansData = await loansResponse.json();
 
-                // Fetch reservations
-                const reservationsResponse = await fetch("/api/reservations");
+                // Fetch reservations - only show the current user's reservations
+                const reservationsResponse = await fetch("/api/reservations?onlyUserReservations=true");
                 if (!reservationsResponse.ok) throw new Error("Failed to fetch reservations");
                 const reservationsData = await reservationsResponse.json();
 

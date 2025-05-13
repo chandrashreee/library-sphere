@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(request) {
     try {
         const session = await getServerSession(authOptions);
 
@@ -14,11 +14,15 @@ export async function GET() {
             );
         }
 
+        // Get the URL to parse query parameters
+        const url = new URL(request.url);
+        const onlyUserLoans = url.searchParams.get('onlyUserLoans') === 'true';
+
         let loans;
         const userRole = session.user.role;
 
-        if (userRole === 'member') {
-            // For members, only show their own loans
+        if (userRole === 'member' || onlyUserLoans) {
+            // For members or when explicitly requesting only user loans
             loans = await prisma.loan.findMany({
                 where: {
                     member: {
@@ -42,7 +46,7 @@ export async function GET() {
                 },
             });
         } else {
-            // For staff, show all loans
+            // For staff, show all loans (when not explicitly requesting only user loans)
             loans = await prisma.loan.findMany({
                 include: {
                     document: true,

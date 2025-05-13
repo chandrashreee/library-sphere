@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(request) {
     try {
         const session = await getServerSession(authOptions);
 
@@ -14,11 +14,15 @@ export async function GET() {
             );
         }
 
+        // Get the URL to parse query parameters
+        const url = new URL(request.url);
+        const onlyUserReservations = url.searchParams.get('onlyUserReservations') === 'true';
+
         let reservations;
         const userRole = session.user.role;
 
-        if (userRole === 'member') {
-            // For members, only show their own reservations
+        if (userRole === 'member' || onlyUserReservations) {
+            // For members or when explicitly requesting only user reservations
             reservations = await prisma.reservation.findMany({
                 where: {
                     member: {
@@ -42,7 +46,7 @@ export async function GET() {
                 },
             });
         } else {
-            // For staff, show all reservations
+            // For staff, show all reservations (when not explicitly requesting only user reservations)
             reservations = await prisma.reservation.findMany({
                 include: {
                     document: true,
