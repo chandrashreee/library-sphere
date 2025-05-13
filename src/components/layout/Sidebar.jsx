@@ -11,7 +11,8 @@ import {
     UserCog,
     User,
     LogOut,
-    BookOpen
+    BookOpen,
+    FileText
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -58,6 +59,13 @@ export default function Sidebar() {
                             href="/catalog"
                             icon={<BookOpenText className="h-5 w-5" />}
                             label="Browse Catalog"
+                        />
+
+                        <NavItem
+                            href="/documents"
+                            icon={<FileText className="h-5 w-5" />}
+                            label="Documents"
+                            onlyShowFor={['admin', 'employee']}
                         />
 
                         <NavItem
