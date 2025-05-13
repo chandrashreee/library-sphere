@@ -1457,7 +1457,427 @@ This guide provides instructions specifically for library administrators on how 
 
 ## Features Documentation
 
-*Sections to be completed*
+### Catalog Management
+
+The Catalog Management system is a core component of Library Sphere, providing functionality for browsing, searching, and managing the library's collection of documents.
+
+#### Overview
+
+The catalog system offers a rich, interactive interface for exploring the library's collection with the following capabilities:
+
+- Browse the complete document collection
+- Search by title, author, and description
+- Filter by multiple criteria
+- View detailed document information
+- Check document availability status
+- Perform document-related actions based on user role
+
+#### Implementation Details
+
+1. **Catalog Page Component**
+   
+   The catalog is implemented in `src/app/catalog/page.jsx` as a client-side component with the following structure:
+   
+   - State management for documents, filters, and search
+   - Fetch API integration for retrieving document data
+   - Dynamic rendering based on document availability
+   - Role-based action buttons
+   - Responsive grid layout
+
+2. **Data Fetching**
+   
+   Documents are retrieved from the backend using:
+   
+   ```javascript
+   const response = await fetch("/api/documents?includeReservations=true");
+   const data = await response.json();
+   ```
+   
+   The `includeReservations` parameter ensures that reservation status is included in the response.
+
+3. **Search Functionality**
+   
+   Search is implemented with client-side filtering:
+   
+   ```javascript
+   // Apply search filter
+   if (searchQuery) {
+     const query = searchQuery.toLowerCase();
+     results = results.filter(
+       (doc) =>
+         doc.title.toLowerCase().includes(query) ||
+         doc.author.toLowerCase().includes(query) ||
+         doc.description.toLowerCase().includes(query)
+     );
+   }
+   ```
+
+4. **Filtering System**
+   
+   The catalog supports filtering by:
+   
+   - Category (Novel, Comics, VideoGame, Film)
+   - Age rating (Kids, Teens, Adults)
+   - Genre (Action, Adventure, Comedy, etc.)
+   
+   Filters are implemented using shadcn/ui Select components and applied through client-side filtering:
+   
+   ```javascript
+   // Apply category filter
+   if (filters.category && filters.category !== "all-categories") {
+     results = results.filter((doc) => doc.category === filters.category);
+   }
+   ```
+
+5. **Document Cards**
+   
+   Each document is displayed as a card containing:
+   
+   - Cover image (with fallback for missing images)
+   - Title and author
+   - Category and age rating badges
+   - Brief description
+   - Status indicators
+   - Action buttons (Loan, Reserve, Fulfill Reservation)
+
+6. **Document Details Dialog**
+   
+   A modal dialog displays detailed document information when requested:
+   
+   - Full metadata (title, author, year, ISBN, etc.)
+   - Complete description
+   - Current availability status
+   - Larger cover image
+   
+   Implemented using shadcn/ui Dialog component.
+
+7. **Availability Status System**
+   
+   The catalog shows document availability with:
+   
+   - Visual indicators (badges)
+   - Conditional action buttons
+   - Status-specific messages
+   
+   Availability is determined by checking active loans:
+   
+   ```javascript
+   const isAvailable = !document.loans?.some(loan => loan.status === 'Active');
+   ```
+
+8. **Action Buttons**
+   
+   The system dynamically renders appropriate action buttons:
+   
+   - "Loan" for available documents (members only)
+   - "Reserve" for unavailable documents
+   - "Fulfill Reservation" for staff when a reservation is pending
+   
+   Button visibility is controlled by role and document status:
+   
+   ```javascript
+   const canFulfillReservation = isStaff && isAvailable && pendingReservation;
+   ```
+
+#### User Interactions
+
+1. **Browsing**
+   
+   Users can:
+   
+   - Scroll through the paginated document grid
+   - Apply filters to narrow down results
+   - Search for specific terms
+   - Reset filters to view all documents
+
+2. **Document Actions**
+   
+   Members can:
+   
+   - Loan available documents
+   - Reserve unavailable documents
+   - View their current loans and reservations
+   
+   Staff can:
+   
+   - View document details
+   - Fulfill reservations for members
+   - See document status
+
+3. **Responsive Design**
+   
+   The catalog adapts to different screen sizes:
+   
+   - Multi-column grid for desktop
+   - Fewer columns for tablet
+   - Single column for mobile
+   - Responsive filters and search
+
+#### Error Handling
+
+The catalog includes comprehensive error handling:
+
+1. **Loading States**
+   
+   - Initial loading indicator when fetching documents
+   - Action-specific loading states on buttons
+   - Disabled buttons during operations
+
+2. **Error Notifications**
+   
+   - Toast messages for operation results
+   - Specific error messages for different failure scenarios
+   - Session expiration handling
+
+3. **Fallbacks**
+   
+   - Placeholder image for missing document covers
+   - Empty state for no search results
+   - Error boundary for component failures
+
+#### Performance Considerations
+
+The catalog is optimized for performance:
+
+1. **Efficient Rendering**
+   
+   - React Hooks for state management
+   - Memoization of filtered results
+   - Conditional rendering for dynamic elements
+
+2. **Network Optimization**
+   
+   - Single initial API call for document data
+   - Selective refetching after operations
+   - Optimistic UI updates
+
+3. **User Experience**
+   
+   - Debounced search input
+   - Progressive loading of content
+   - Instant feedback for user actions
+
+### Loan Management
+
+The Loan Management system handles the core library functionality of document borrowing and returning, providing a comprehensive solution for tracking and managing loans throughout their lifecycle.
+
+#### Overview
+
+The loan management system enables:
+
+- Creating new loans for members
+- Tracking active loans
+- Processing document returns
+- Enforcing loan business rules
+- Managing loan status and due dates
+
+#### Implementation Details
+
+1. **Loan Data Model**
+   
+   The Loan entity is defined in the Prisma schema as:
+   
+   ```prisma
+   model Loan {
+     id                 String        @id @default(auto()) @map("_id") @db.ObjectId
+     member             Member        @relation(fields: [memberId], references: [id])
+     memberId           String        @db.ObjectId
+     document           Document      @relation(fields: [documentId], references: [id])
+     documentId         String        @db.ObjectId
+     loanDate           DateTime      @default(now())
+     expectedReturnDate DateTime
+     actualReturnDate   DateTime?
+     status             String        @default("Active") // Active, Returned
+     createdAt          DateTime      @default(now())
+     updatedAt          DateTime      @updatedAt
+
+     @@unique([memberId, documentId, loanDate])
+     @@index([documentId, status])
+   }
+   ```
+   
+   Key features of the model:
+   - Relationships to Member and Document
+   - Dates for loan creation and expected return
+   - Optional actual return date
+   - Status field to track loan state
+   - Unique constraint to prevent duplicate loans
+   - Index for efficient status querying
+
+2. **Loan API Endpoints**
+   
+   Loan operations are handled by the `/api/loans` endpoint:
+   
+   - `GET /api/loans`: Retrieve loans with optional filtering
+   - `POST /api/loans`: Create a new loan
+   - `PUT /api/loans/:id`: Update a loan (e.g., mark as returned)
+   - `DELETE /api/loans/:id`: Delete a loan (administrative function)
+
+3. **Loan Creation Process**
+   
+   Creating a loan involves several validation steps:
+   
+   ```javascript
+   // Check if document is available
+   const existingActiveLoan = await prisma.loan.findFirst({
+     where: {
+       documentId,
+       status: "Active"
+     }
+   });
+   
+   if (existingActiveLoan) {
+     return res.status(400).json({ error: "Document is currently on loan" });
+   }
+   
+   // Check for existing reservation
+   const pendingReservation = await prisma.reservation.findFirst({
+     where: {
+       documentId,
+       status: "Pending"
+     }
+   });
+   
+   if (pendingReservation && pendingReservation.memberId !== memberId) {
+     return res.status(400).json({ error: "Document is reserved by another member" });
+   }
+   
+   // Create the loan within a transaction
+   const loan = await prisma.$transaction(async (tx) => {
+     // Create the loan
+     const newLoan = await tx.loan.create({
+       data: {
+         memberId,
+         documentId,
+         expectedReturnDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days
+         status: "Active"
+       }
+     });
+     
+     // If there was a reservation by this member, mark it as fulfilled
+     if (pendingReservation && pendingReservation.memberId === memberId) {
+       await tx.reservation.update({
+         where: { id: pendingReservation.id },
+         data: { status: "Fulfilled" }
+       });
+     }
+     
+     return newLoan;
+   });
+   ```
+
+4. **Loan Return Process**
+   
+   Returning a document updates the loan record:
+   
+   ```javascript
+   const updatedLoan = await prisma.loan.update({
+     where: { id },
+     data: {
+       status: "Returned",
+       actualReturnDate: new Date()
+     }
+   });
+   ```
+
+5. **Loans Page Implementation**
+   
+   The Loans page (`src/app/loans/page.jsx`) provides:
+   
+   - Display of all active loans for the current user
+   - Filtering and search capabilities
+   - Return action for staff
+   - Loan history view
+
+#### Business Rules
+
+1. **Document Availability**
+   
+   A document can be loaned if:
+   
+   - It has no active loans
+   - It is not reserved by another member
+   - The member doesn't already have the document on loan
+
+2. **Loan Duration**
+   
+   - Default loan period is 14 days
+   - The system calculates expected return dates automatically
+   - Future enhancement may allow for configurable loan periods
+
+3. **Loan Limits**
+   
+   - Members can only have one copy of a document at a time
+   - Future enhancement may add maximum concurrent loans per member
+
+4. **Staff Restrictions**
+   
+   - Staff members cannot loan documents to themselves
+   - Staff can create loans for members
+   - Staff can process returns
+
+#### User Interfaces
+
+1. **Catalog Integration**
+   
+   - "Loan" button on available documents
+   - Availability status indicators
+   - Toast notifications for loan operations
+
+2. **Loans Page**
+   
+   - Lists all loans for the current user
+   - For staff, shows all loans with member information
+   - Provides filtering options (active, returned, by date)
+   - Displays expected and actual return dates
+
+3. **Account Page**
+   
+   - Shows current loans in the member profile
+   - Provides quick access to loan information
+
+#### Error Handling
+
+The loan system implements comprehensive error handling:
+
+1. **Validation Errors**
+   
+   - Document already on loan
+   - Document reserved by another member
+   - Invalid member or document IDs
+   - Unauthorized access
+
+2. **Transaction Safety**
+   
+   - Database transactions for atomic operations
+   - Rollback on failure to maintain data integrity
+   - Concurrency handling for race conditions
+
+3. **User Feedback**
+   
+   - Clear error messages through toast notifications
+   - Success confirmations for completed operations
+   - Loading states during processing
+
+#### Security Considerations
+
+1. **Authentication and Authorization**
+   
+   - All loan endpoints require authenticated users
+   - Members can only see and manage their own loans
+   - Staff can view and manage all loans
+
+2. **Validation**
+   
+   - Server-side validation of all loan operations
+   - Prevention of duplicate loans
+   - Input sanitization and type checking
+
+3. **Audit Trail**
+   
+   - Creation and update timestamps for all loan records
+   - Status tracking for loan lifecycle
+   - Future enhancement may add detailed activity logging
 
 ## API Reference
 
