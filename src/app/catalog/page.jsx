@@ -3,13 +3,22 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Search, Filter, BookOpen, Loader2 } from "lucide-react";
+import { Search, Filter, BookOpen, Loader2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+    DialogClose
+} from "@/components/ui/dialog";
 
 export default function CatalogPage() {
     const { data: session } = useSession();
@@ -25,6 +34,8 @@ export default function CatalogPage() {
     });
     const [loadingDocumentId, setLoadingDocumentId] = useState(null);
     const [loadingAction, setLoadingAction] = useState(null);
+    const [selectedDocument, setSelectedDocument] = useState(null);
+    const [viewDialogOpen, setViewDialogOpen] = useState(false);
 
     // Categories, Classifications, and Types for filtering
     const categories = ["Novel", "Comics", "VideoGame", "Film"];
@@ -186,6 +197,12 @@ export default function CatalogPage() {
         }
     };
 
+    // Add a new function to handle viewing document details
+    const handleViewDocument = (document) => {
+        setSelectedDocument(document);
+        setViewDialogOpen(true);
+    };
+
     // Placeholder image when no image is available
     const placeholderImage = "https://placehold.co/400x600/133b5c/ffffff?text=No+Image";
 
@@ -319,7 +336,7 @@ export default function CatalogPage() {
 
                         return (
                             <Card key={document.id} className="overflow-hidden">
-                                <div className="aspect-[2/3] relative">
+                                <div className="aspect-[2/3] relative cursor-pointer" onClick={() => handleViewDocument(document)}>
                                     <img
                                         src={document.imagePath || placeholderImage}
                                         alt={document.title}
@@ -359,107 +376,118 @@ export default function CatalogPage() {
                                 <CardContent className="p-4 pt-0">
                                     <p className="text-sm line-clamp-2">{document.description}</p>
                                 </CardContent>
-                                <CardFooter className="p-4 pt-0 flex gap-2">
-                                    {/* For staff with ability to fulfill a reservation */}
-                                    {canFulfillReservation ? (
-                                        <Button
-                                            className="flex-1 bg-green-600 hover:bg-green-700"
-                                            onClick={() => handleDocumentAction(document.id, "fulfill", pendingReservation.id)}
-                                            disabled={isFulfillLoading}
-                                        >
-                                            {isFulfillLoading ? (
-                                                <>
-                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                    Fulfilling...
-                                                </>
-                                            ) : (
-                                                "Fulfill Reservation"
-                                            )}
-                                        </Button>
-                                    ) : isAvailable ? (
-                                        <>
-                                            {/* Document is available but might be reserved */}
-                                            {isReservedByOthers ? (
-                                                <Button
-                                                    className="flex-1"
-                                                    variant="outline"
-                                                    disabled
-                                                    title="This document is reserved by another member"
-                                                >
-                                                    Reserved by Member
-                                                </Button>
-                                            ) : isStaff ? (
-                                                <Button
-                                                    className="flex-1"
-                                                    variant="outline"
-                                                    disabled
-                                                    title="Staff members cannot loan books for themselves"
-                                                >
-                                                    Staff Cannot Loan
-                                                </Button>
-                                            ) : (
-                                                <Button
-                                                    className="flex-1 bg-[#133b5c] hover:bg-[#0E2A47]"
-                                                    onClick={() => handleDocumentAction(document.id, "loan")}
-                                                    disabled={isLoanLoading}
-                                                >
-                                                    {isLoanLoading ? (
-                                                        <>
-                                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                            Loaning...
-                                                        </>
-                                                    ) : (
-                                                        "Loan"
-                                                    )}
-                                                </Button>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <>
-                                            {/* Document is unavailable */}
-                                            {isReservedByUser ? (
-                                                <Button
-                                                    className="flex-1"
-                                                    variant="outline"
-                                                    disabled
-                                                >
-                                                    You've Reserved This
-                                                </Button>
-                                            ) : isReservedByOthers ? (
-                                                <Button
-                                                    className="flex-1"
-                                                    variant="outline"
-                                                    disabled
-                                                >
-                                                    Already Reserved
-                                                </Button>
-                                            ) : isLoanedByUser ? (
-                                                <Button
-                                                    className="flex-1"
-                                                    variant="outline"
-                                                    disabled
-                                                >
-                                                    You Have This On Loan
-                                                </Button>
-                                            ) : (
-                                                <Button
-                                                    className="flex-1"
-                                                    variant="outline"
-                                                    onClick={() => handleDocumentAction(document.id, "reserve")}
-                                                    disabled={isReserveLoading}
-                                                >
-                                                    {isReserveLoading ? (
-                                                        <>
-                                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                            Reserving...
-                                                        </>
-                                                    ) : (
-                                                        "Reserve"
-                                                    )}
-                                                </Button>
-                                            )}
-                                        </>
-                                    )}
+                                <CardFooter className="p-4 pt-0 flex flex-col gap-2">
+                                    <Button
+                                        variant="outline"
+                                        className="w-full flex items-center justify-center gap-2"
+                                        onClick={() => handleViewDocument(document)}
+                                    >
+                                        <Eye className="h-4 w-4" />
+                                        View Details
+                                    </Button>
+
+                                    <div className="w-full">
+                                        {/* For staff with ability to fulfill a reservation */}
+                                        {canFulfillReservation ? (
+                                            <Button
+                                                className="w-full bg-green-600 hover:bg-green-700"
+                                                onClick={() => handleDocumentAction(document.id, "fulfill", pendingReservation.id)}
+                                                disabled={isFulfillLoading}
+                                            >
+                                                {isFulfillLoading ? (
+                                                    <>
+                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                        Fulfilling...
+                                                    </>
+                                                ) : (
+                                                    "Fulfill Reservation"
+                                                )}
+                                            </Button>
+                                        ) : isAvailable ? (
+                                            <>
+                                                {/* Document is available but might be reserved */}
+                                                {isReservedByOthers ? (
+                                                    <Button
+                                                        className="w-full"
+                                                        variant="outline"
+                                                        disabled
+                                                        title="This document is reserved by another member"
+                                                    >
+                                                        Reserved by Member
+                                                    </Button>
+                                                ) : isStaff ? (
+                                                    <Button
+                                                        className="w-full"
+                                                        variant="outline"
+                                                        disabled
+                                                        title="Staff members cannot loan books for themselves"
+                                                    >
+                                                        Staff Cannot Loan
+                                                    </Button>
+                                                ) : (
+                                                    <Button
+                                                        className="w-full bg-[#133b5c] hover:bg-[#0E2A47]"
+                                                        onClick={() => handleDocumentAction(document.id, "loan")}
+                                                        disabled={isLoanLoading}
+                                                    >
+                                                        {isLoanLoading ? (
+                                                            <>
+                                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                Loaning...
+                                                            </>
+                                                        ) : (
+                                                            "Loan"
+                                                        )}
+                                                    </Button>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <>
+                                                {/* Document is unavailable */}
+                                                {isReservedByUser ? (
+                                                    <Button
+                                                        className="w-full"
+                                                        variant="outline"
+                                                        disabled
+                                                    >
+                                                        You've Reserved This
+                                                    </Button>
+                                                ) : isReservedByOthers ? (
+                                                    <Button
+                                                        className="w-full"
+                                                        variant="outline"
+                                                        disabled
+                                                    >
+                                                        Already Reserved
+                                                    </Button>
+                                                ) : isLoanedByUser ? (
+                                                    <Button
+                                                        className="w-full"
+                                                        variant="outline"
+                                                        disabled
+                                                    >
+                                                        You Have This On Loan
+                                                    </Button>
+                                                ) : (
+                                                    <Button
+                                                        className="w-full"
+                                                        variant="outline"
+                                                        onClick={() => handleDocumentAction(document.id, "reserve")}
+                                                        disabled={isReserveLoading}
+                                                    >
+                                                        {isReserveLoading ? (
+                                                            <>
+                                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                Reserving...
+                                                            </>
+                                                        ) : (
+                                                            "Reserve"
+                                                        )}
+                                                    </Button>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
                                 </CardFooter>
                             </Card>
                         );
@@ -476,6 +504,93 @@ export default function CatalogPage() {
                     </div>
                 </div>
             )}
+
+            {/* Document Details Dialog */}
+            <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                    {selectedDocument && (
+                        <>
+                            <DialogHeader>
+                                <DialogTitle className="text-2xl font-serif">{selectedDocument.title}</DialogTitle>
+                                <DialogDescription>
+                                    {selectedDocument.author} ({selectedDocument.year})
+                                </DialogDescription>
+                                <div className="flex items-center mt-1 gap-2">
+                                    <Badge variant="outline" className="px-2 py-0">
+                                        {selectedDocument.category}
+                                    </Badge>
+                                    <Badge variant="outline" className="px-2 py-0">
+                                        {selectedDocument.classifying}
+                                    </Badge>
+                                    <Badge variant="outline" className="px-2 py-0">
+                                        {selectedDocument.type}
+                                    </Badge>
+                                </div>
+                            </DialogHeader>
+
+                            <div className="grid md:grid-cols-2 gap-6 py-4">
+                                <div className="flex justify-center">
+                                    <img
+                                        src={selectedDocument.imagePath || placeholderImage}
+                                        alt={selectedDocument.title}
+                                        className="max-h-[400px] object-contain rounded-md border"
+                                    />
+                                </div>
+                                <div className="space-y-4">
+                                    <div>
+                                        <h3 className="font-medium text-primary">Author</h3>
+                                        <p>{selectedDocument.author}</p>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-medium text-primary">Year</h3>
+                                        <p>{selectedDocument.year}</p>
+                                    </div>
+                                    {selectedDocument.ISBN && (
+                                        <div>
+                                            <h3 className="font-medium text-primary">ISBN</h3>
+                                            <p>{selectedDocument.ISBN}</p>
+                                        </div>
+                                    )}
+                                    <div>
+                                        <h3 className="font-medium text-primary">Code</h3>
+                                        <p>{selectedDocument.code}</p>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-medium text-primary">Description</h3>
+                                        <p className="text-sm text-gray-700">{selectedDocument.description}</p>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-medium text-primary">Status</h3>
+                                        <div className="mt-1">
+                                            {!selectedDocument.loans?.some(loan => loan.status === 'Active') ? (
+                                                <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                                                    Available
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="destructive">
+                                                    On Loan
+                                                </Badge>
+                                            )}
+
+                                            {selectedDocument.reservations?.some(res => res.status === 'Pending') && (
+                                                <Badge className="ml-2 bg-amber-100 text-amber-800 hover:bg-amber-100">
+                                                    Reserved
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <DialogFooter>
+                                <DialogClose asChild>
+                                    <Button variant="outline">Close</Button>
+                                </DialogClose>
+                            </DialogFooter>
+                        </>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 } 
