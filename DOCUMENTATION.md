@@ -342,9 +342,358 @@ Library Sphere requires several environment variables to function properly. Thes
 - Regularly rotate the `NEXTAUTH_SECRET` value in production
 - Use environment-specific secrets for each deployment environment
 
+### Running Locally
+
+Once you've completed the installation and configuration process, you can run Library Sphere locally for development purposes.
+
+#### Development Server
+
+Start the development server with:
+
+```bash
+npm run dev
+```
+
+This command runs the application with Turbopack for faster refresh times during development. The application will be available at [http://localhost:3000](http://localhost:3000).
+
+#### Development Features
+
+The development mode includes several features to improve the development experience:
+
+1. **Hot Module Replacement (HMR)**
+   - Code changes are reflected immediately without full page refreshes
+   - State is preserved when possible
+
+2. **Error Overlay**
+   - Runtime errors are displayed directly in the browser
+   - Stacktraces are shown for easier debugging
+
+3. **API Route Hot Reloading**
+   - Changes to API routes are available immediately
+   - No server restart required when modifying API logic
+
+#### Accessing Different User Roles
+
+To test different user roles, use the following demo accounts:
+
+| Role | Email | Password |
+|------|-------|----------|
+| Member | john.doe@example.com | password123 |
+| Employee | robert.taylor@library.com | employee123 |
+| Admin | sarah.davis@library.com | admin123 |
+
+#### Local Testing Workflow
+
+1. **Start the Development Server**
+   ```bash
+   npm run dev
+   ```
+
+2. **Access the Application**
+   Open your browser and navigate to [http://localhost:3000](http://localhost:3000)
+
+3. **Login with Test Credentials**
+   Use one of the demo accounts to access the corresponding role's functionality
+
+4. **Test Features**
+   Explore the application's features based on the role you're currently logged in as
+
+5. **Monitor Terminal Output**
+   The terminal running the development server will display logs, errors, and other helpful information
+
+### Deployment
+
+Library Sphere is designed to be deployed to production environments with minimal configuration. This section covers the recommended deployment process using Vercel, though the application can be deployed to any platform that supports Next.js applications.
+
+#### Deploying to Vercel
+
+Vercel is the recommended platform for deploying Library Sphere, as it offers seamless integration with Next.js applications.
+
+1. **Create a Vercel Account**
+   
+   If you don't already have one, sign up for a free Vercel account at [https://vercel.com/signup](https://vercel.com/signup).
+
+2. **Install Vercel CLI (Optional)**
+   
+   ```bash
+   npm install -g vercel
+   ```
+
+3. **Configure Project for Deployment**
+   
+   Ensure your project has a `vercel.json` file in the root directory:
+   
+   ```json
+   {
+     "buildCommand": "prisma generate && next build",
+     "installCommand": "npm install",
+     "framework": "nextjs"
+   }
+   ```
+
+4. **Set Up Environment Variables**
+   
+   Configure environment variables in the Vercel dashboard:
+   
+   - Go to your project settings
+   - Navigate to the Environment Variables section
+   - Add all required variables (see Environment Variables section)
+   - Make sure to use production-appropriate values, especially for database connections
+
+5. **Deploy Using GitHub Integration (Recommended)**
+   
+   a. Push your code to a GitHub repository
+   b. In Vercel, click "Import Project"
+   c. Select "Import Git Repository"
+   d. Choose your Library Sphere repository
+   e. Configure the project settings
+   f. Click "Deploy"
+   
+   Vercel will automatically deploy your application and provide a URL.
+
+6. **Deploy Using Vercel CLI (Alternative)**
+   
+   ```bash
+   vercel
+   ```
+   
+   Follow the prompts to deploy your application.
+
+7. **Configure Custom Domain (Optional)**
+   
+   a. In the Vercel dashboard, go to your project settings
+   b. Navigate to the Domains section
+   c. Add your custom domain
+   d. Follow Vercel's instructions for DNS configuration
+
+#### Deployment Best Practices
+
+1. **Database Considerations**
+   
+   - Use a production MongoDB Atlas cluster
+   - Set up database backups
+   - Configure proper network security for database access
+
+2. **Environment Configuration**
+   
+   - Use strong, unique secrets for production
+   - Never share production credentials
+   - Set NODE_ENV to "production"
+
+3. **Performance Optimization**
+   
+   - Enable Vercel's Edge Functions for global distribution
+   - Configure caching strategies if needed
+   - Consider using a CDN for static assets
+
+4. **Monitoring and Logging**
+   
+   - Set up error monitoring (Sentry, LogRocket, etc.)
+   - Configure application logging
+   - Set up uptime monitoring
+
+5. **Continuous Deployment**
+   
+   - Set up a CI/CD pipeline using GitHub Actions or Vercel's built-in deployment
+   - Implement pull request previews
+   - Use environment branch deployments for staging environments
+
 ## System Architecture
 
-*Sections to be completed*
+### Database Design
+
+Library Sphere uses MongoDB, a NoSQL document database, with Prisma ORM to provide a flexible but structured data model. The database design follows a document-oriented approach while maintaining relational aspects through references.
+
+#### Database Architecture
+
+The database architecture is designed to support the core functionality of a library management system with the following key entities:
+
+1. **Member**
+   - Represents library patrons who can borrow documents
+   - Contains personal information, contact details, and authentication credentials
+   - Linked to loans and reservations
+
+2. **Employee**
+   - Represents library staff with different permission levels
+   - Contains personal information, contact details, and authentication credentials
+   - Includes role information (employee or admin)
+
+3. **Document**
+   - Represents library materials (books, comics, games, films)
+   - Contains metadata such as title, author, year, and classification
+   - Linked to loans and reservations
+
+4. **Loan**
+   - Represents the borrowing transaction of a document by a member
+   - Contains loan dates, return information, and status
+   - Links members and documents
+
+5. **Reservation**
+   - Represents requests for currently unavailable documents
+   - Contains reservation dates, expiry date, and status
+   - Links members and documents
+
+6. **NextAuth Tables**
+   - Supports authentication via NextAuth.js
+   - Includes Account, Session, and VerificationToken collections
+
+#### Entity Relationships
+
+The relationships between entities are maintained through document references:
+
+```
+Member
+  │
+  ├── Loans (one-to-many) ──┐
+  │                         │
+  └── Reservations (one-to-many) ┐
+                           │     │
+Document                   │     │
+  │                        │     │
+  ├── Loans (one-to-many) ─┘     │
+  │                              │
+  └── Reservations (one-to-many) ┘
+```
+
+#### Data Model Design Principles
+
+1. **Normalization Balance**
+   - Data is normalized to reduce redundancy while maintaining performance
+   - Some denormalization for frequently accessed data patterns
+
+2. **Referential Integrity**
+   - Foreign key relationships are maintained through Prisma's relation fields
+   - Document references ensure data consistency
+
+3. **Indexing Strategy**
+   - Strategic indexes on frequently queried fields to improve performance
+   - Compound indexes for common query patterns
+
+4. **Data Validation**
+   - Schema-level validation through Prisma schema
+   - Additional application-level validation for complex business rules
+
+5. **Unique Constraints**
+   - Unique indexes to prevent duplicate entries
+   - Compound uniqueness constraints for business rules (e.g., one active loan per document)
+
+#### MongoDB Atlas Configuration
+
+Library Sphere is designed to work with MongoDB Atlas, which provides:
+
+1. **Scalability**
+   - Automatic scaling as data size increases
+   - Distributed database architecture
+
+2. **Reliability**
+   - Automated backups
+   - High availability through replica sets
+
+3. **Security**
+   - Network security through IP whitelisting
+   - Encrypted connections with TLS/SSL
+   - Database user access controls
+
+### API Routes
+
+Library Sphere uses Next.js API routes to provide a RESTful API for client-server communication. These API routes handle data fetching, authentication, and business logic operations.
+
+#### API Architecture
+
+The API follows REST principles and is organized around the core resources of the application:
+
+1. **Authentication**
+   - `/api/auth/[...nextauth]`: Authentication endpoints powered by NextAuth.js
+   - Handles login, session management, and token validation
+
+2. **Documents**
+   - `/api/documents`: Manages the library collection
+   - Supports CRUD operations for documents
+   - Includes filtering and search capabilities
+
+3. **Loans**
+   - `/api/loans`: Manages document borrowing
+   - Handles creating, updating, and retrieving loans
+   - Enforces business rules like availability checks
+
+4. **Reservations**
+   - `/api/reservations`: Manages document reservation requests
+   - Handles creating, fulfilling, and cancelling reservations
+   - Enforces reservation rules and priorities
+
+5. **Members**
+   - `/api/members`: Manages library patrons
+   - Handles member registration and profile management
+   - Provides access to member-specific information
+
+6. **Employees**
+   - `/api/employees`: Manages library staff
+   - Supports employee account management
+   - Enforces role-based access controls
+
+#### API Design Principles
+
+1. **RESTful Resource Modeling**
+   - Resources match database entities
+   - HTTP methods align with CRUD operations (GET, POST, PUT, DELETE)
+   - Consistent URL structure for predictability
+
+2. **Authentication and Authorization**
+   - JWT-based authentication via NextAuth.js
+   - Role-based access control for protected endpoints
+   - Session validation for secure operations
+
+3. **Error Handling**
+   - Consistent error response format
+   - Appropriate HTTP status codes
+   - Descriptive error messages for debugging
+
+4. **Transaction Management**
+   - Prisma transactions for multi-step operations
+   - Rollback capabilities to ensure data integrity
+   - Concurrency handling for race conditions
+
+5. **API Response Structure**
+
+   Successful responses follow a consistent format:
+   ```json
+   {
+     "data": { /* response data */ },
+     "message": "Operation successful"
+   }
+   ```
+
+   Error responses follow this format:
+   ```json
+   {
+     "error": "Error message",
+     "status": 400
+   }
+   ```
+
+#### API Route Implementation
+
+API routes are implemented as serverless functions that run on-demand:
+
+1. **Request Validation**
+   - Input validation for all requests
+   - Type checking and data sanitization
+   - Required field validation
+
+2. **Authentication Middleware**
+   - Session validation via NextAuth
+   - Role permission checks
+   - Route protection based on user type
+
+3. **Database Operations**
+   - Prisma client for database interactions
+   - Optimized queries with proper selections
+   - Transaction support for atomic operations
+
+4. **Response Formatting**
+   - Consistent JSON structure
+   - Appropriate HTTP status codes
+   - CORS headers for cross-origin requests
 
 ## User Guides
 
