@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { Search, BookCheck, ClipboardList } from "lucide-react";
+import { Search, BookCheck, ClipboardList, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ export default function LoansPage() {
     const [filteredLoans, setFilteredLoans] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const [returningLoanId, setReturningLoanId] = useState(null);
 
     useEffect(() => {
         async function fetchLoans() {
@@ -66,6 +67,8 @@ export default function LoansPage() {
     };
 
     const handleReturnLoan = async (loanId) => {
+        setReturningLoanId(loanId);
+
         try {
             const response = await fetch("/api/loans", {
                 method: "PATCH",
@@ -97,6 +100,8 @@ export default function LoansPage() {
         } catch (error) {
             console.error("Error returning loan:", error);
             toast.error(error.message || "Failed to return loan");
+        } finally {
+            setReturningLoanId(null);
         }
     };
 
@@ -161,6 +166,7 @@ export default function LoansPage() {
                                     !loan.actualReturnDate &&
                                     new Date(loan.expectedReturnDate) < new Date();
                                 const isActive = !loan.actualReturnDate;
+                                const isLoading = returningLoanId === loan.id;
 
                                 return (
                                     <TableRow key={loan.id}>
@@ -195,7 +201,7 @@ export default function LoansPage() {
                                             {isActive ? (
                                                 <Badge
                                                     variant={isOverdue ? "destructive" : "default"}
-                                                    className="bg-[#133b5c]"
+                                                    className={isOverdue ? "" : "bg-[#133b5c]"}
                                                 >
                                                     {isOverdue ? "Overdue" : "Active"}
                                                 </Badge>
@@ -208,10 +214,20 @@ export default function LoansPage() {
                                                 <Button
                                                     size="sm"
                                                     onClick={() => handleReturnLoan(loan.id)}
-                                                    className="h-8 gap-1"
+                                                    className="h-8 gap-1 bg-[#133b5c] hover:bg-[#0E2A47]"
+                                                    disabled={isLoading}
                                                 >
-                                                    <BookCheck className="h-4 w-4" />
-                                                    <span>Return</span>
+                                                    {isLoading ? (
+                                                        <>
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                            <span>Returning...</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <BookCheck className="h-4 w-4" />
+                                                            <span>Return</span>
+                                                        </>
+                                                    )}
                                                 </Button>
                                             )}
                                         </TableCell>
