@@ -2732,20 +2732,2403 @@ The staff administration system enables:
 
 ## API Reference
 
-*Sections to be completed*
+The Library Sphere API provides a set of RESTful endpoints for interacting with the system's core resources. This reference documents the available endpoints, their parameters, request formats, and response structures.
+
+### Authentication Endpoints
+
+The authentication system is powered by NextAuth.js and provides endpoints for session management and user authentication.
+
+#### `/api/auth/[...nextauth]`
+
+NextAuth.js handles multiple authentication-related routes under this path.
+
+**Available Operations:**
+
+- **POST `/api/auth/signin`**: Authenticate a user
+- **GET `/api/auth/session`**: Get current session data
+- **POST `/api/auth/signout`**: Sign out a user
+- **GET `/api/auth/csrf`**: Get CSRF token
+
+**Authentication Request Example:**
+
+```javascript
+// Example authentication request
+const response = await fetch("/api/auth/signin", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    email: "user@example.com",
+    password: "password123",
+    role: "member", // or "staff" for employees
+    csrfToken: "csrf_token_here"
+  })
+});
+```
+
+**Response Format:**
+
+```json
+{
+  "user": {
+    "id": "user_id",
+    "name": "User Name",
+    "email": "user@example.com",
+    "role": "member"
+  },
+  "expires": "2023-12-31T23:59:59.999Z"
+}
+```
+
+**Authentication Error Codes:**
+
+| Status Code | Description |
+|-------------|-------------|
+| 401 | Invalid credentials |
+| 400 | Missing credentials |
+| 500 | Authentication server error |
+
+### Document Endpoints
+
+These endpoints manage the library's document collection, providing CRUD operations for books, comics, video games, and films.
+
+#### `GET /api/documents`
+
+Retrieves a list of documents with optional filtering.
+
+**Query Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `category` | string | Filter by category (Novel, Comics, VideoGame, Film) |
+| `ageRating` | string | Filter by age rating (Kids, Teens, Adults) |
+| `genre` | string | Filter by genre |
+| `available` | boolean | Filter by availability status |
+| `search` | string | Search in title, author, and description |
+| `includeLoans` | boolean | Include loan information in the response |
+| `includeReservations` | boolean | Include reservation information in the response |
+| `page` | number | Page number for pagination |
+| `limit` | number | Items per page for pagination |
+
+**Response Example:**
+
+```json
+{
+  "data": [
+    {
+      "id": "document_id",
+      "title": "Document Title",
+      "author": "Author Name",
+      "year": 2023,
+      "category": "Novel",
+      "ageRating": "Teens",
+      "genre": "Fantasy",
+      "description": "Description text...",
+      "isbn": "978-3-16-148410-0",
+      "libraryCode": "NOV-FAN-001",
+      "loans": [],
+      "reservations": []
+    },
+    // More documents...
+  ],
+  "pagination": {
+    "total": 100,
+    "page": 1,
+    "limit": 10,
+    "pages": 10
+  }
+}
+```
+
+#### `GET /api/documents/:id`
+
+Retrieves a specific document by ID.
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string | Document ID |
+
+**Query Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `includeLoans` | boolean | Include loan information |
+| `includeReservations` | boolean | Include reservation information |
+
+**Response Example:**
+
+```json
+{
+  "data": {
+    "id": "document_id",
+    "title": "Document Title",
+    "author": "Author Name",
+    "year": 2023,
+    "category": "Novel",
+    "ageRating": "Teens",
+    "genre": "Fantasy",
+    "description": "Description text...",
+    "isbn": "978-3-16-148410-0",
+    "libraryCode": "NOV-FAN-001",
+    "loans": [
+      {
+        "id": "loan_id",
+        "memberId": "member_id",
+        "loanDate": "2023-01-15T00:00:00.000Z",
+        "expectedReturnDate": "2023-01-29T00:00:00.000Z",
+        "status": "Active"
+      }
+    ],
+    "reservations": []
+  }
+}
+```
+
+#### `POST /api/documents`
+
+Creates a new document. Requires staff authentication.
+
+**Request Body:**
+
+```json
+{
+  "title": "New Document Title",
+  "author": "Author Name",
+  "year": 2023,
+  "category": "Novel",
+  "ageRating": "Teens",
+  "genre": "Fantasy",
+  "description": "Description of the document...",
+  "isbn": "978-3-16-148410-0",
+  "coverImage": "url_to_image" // Optional
+}
+```
+
+**Response Example:**
+
+```json
+{
+  "data": {
+    "id": "new_document_id",
+    "title": "New Document Title",
+    "author": "Author Name",
+    "year": 2023,
+    "category": "Novel",
+    "ageRating": "Teens",
+    "genre": "Fantasy",
+    "description": "Description of the document...",
+    "isbn": "978-3-16-148410-0",
+    "libraryCode": "NOV-FAN-002", // Generated automatically
+    "createdAt": "2023-02-20T12:34:56.789Z",
+    "updatedAt": "2023-02-20T12:34:56.789Z"
+  },
+  "message": "Document created successfully"
+}
+```
+
+#### `PUT /api/documents/:id`
+
+Updates an existing document. Requires staff authentication.
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string | Document ID |
+
+**Request Body:**
+
+```json
+{
+  "title": "Updated Document Title",
+  "author": "Updated Author Name",
+  "description": "Updated description...",
+  // Include only fields to update
+}
+```
+
+**Response Example:**
+
+```json
+{
+  "data": {
+    "id": "document_id",
+    "title": "Updated Document Title",
+    "author": "Updated Author Name",
+    "description": "Updated description...",
+    // All document fields...
+    "updatedAt": "2023-02-21T09:12:34.567Z"
+  },
+  "message": "Document updated successfully"
+}
+```
+
+#### `DELETE /api/documents/:id`
+
+Deletes a document. Requires staff authentication.
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string | Document ID |
+
+**Response Example:**
+
+```json
+{
+  "message": "Document deleted successfully"
+}
+```
+
+**Document API Error Codes:**
+
+| Status Code | Description |
+|-------------|-------------|
+| 400 | Invalid request data |
+| 401 | Unauthorized access |
+| 403 | Insufficient permissions |
+| 404 | Document not found |
+| 409 | Document has active loans |
+| 500 | Server error |
+
+### Loan Endpoints
+
+These endpoints manage document loans, providing functionality for borrowing and returning library materials.
+
+#### `GET /api/loans`
+
+Retrieves a list of loans with optional filtering.
+
+**Query Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `memberId` | string | Filter by member ID |
+| `documentId` | string | Filter by document ID |
+| `status` | string | Filter by status (Active, Returned) |
+| `includeDocument` | boolean | Include document details |
+| `includeMember` | boolean | Include member details |
+| `page` | number | Page number for pagination |
+| `limit` | number | Items per page for pagination |
+
+**Response Example:**
+
+```json
+{
+  "data": [
+    {
+      "id": "loan_id",
+      "memberId": "member_id",
+      "documentId": "document_id",
+      "loanDate": "2023-01-15T00:00:00.000Z",
+      "expectedReturnDate": "2023-01-29T00:00:00.000Z",
+      "actualReturnDate": null,
+      "status": "Active",
+      "document": {
+        "id": "document_id",
+        "title": "Document Title",
+        "author": "Author Name",
+        // Other document details...
+      },
+      "member": {
+        "id": "member_id",
+        "firstName": "John",
+        "lastName": "Doe",
+        // Other member details...
+      }
+    },
+    // More loans...
+  ],
+  "pagination": {
+    "total": 50,
+    "page": 1,
+    "limit": 10,
+    "pages": 5
+  }
+}
+```
+
+#### `GET /api/loans/:id`
+
+Retrieves a specific loan by ID.
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string | Loan ID |
+
+**Query Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `includeDocument` | boolean | Include document details |
+| `includeMember` | boolean | Include member details |
+
+**Response Example:**
+
+```json
+{
+  "data": {
+    "id": "loan_id",
+    "memberId": "member_id",
+    "documentId": "document_id",
+    "loanDate": "2023-01-15T00:00:00.000Z",
+    "expectedReturnDate": "2023-01-29T00:00:00.000Z",
+    "actualReturnDate": null,
+    "status": "Active",
+    "document": {
+      // Document details...
+    },
+    "member": {
+      // Member details...
+    }
+  }
+}
+```
+
+#### `POST /api/loans`
+
+Creates a new loan. Requires authentication.
+
+**Request Body:**
+
+```json
+{
+  "memberId": "member_id",
+  "documentId": "document_id"
+}
+```
+
+**Response Example:**
+
+```json
+{
+  "data": {
+    "id": "new_loan_id",
+    "memberId": "member_id",
+    "documentId": "document_id",
+    "loanDate": "2023-02-20T12:34:56.789Z",
+    "expectedReturnDate": "2023-03-06T12:34:56.789Z",
+    "status": "Active",
+    "createdAt": "2023-02-20T12:34:56.789Z",
+    "updatedAt": "2023-02-20T12:34:56.789Z"
+  },
+  "message": "Loan created successfully"
+}
+```
+
+#### `PUT /api/loans/:id`
+
+Updates a loan, typically used for returns. Requires authentication.
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string | Loan ID |
+
+**Request Body:**
+
+```json
+{
+  "status": "Returned"
+}
+```
+
+**Response Example:**
+
+```json
+{
+  "data": {
+    "id": "loan_id",
+    "memberId": "member_id",
+    "documentId": "document_id",
+    "loanDate": "2023-01-15T00:00:00.000Z",
+    "expectedReturnDate": "2023-01-29T00:00:00.000Z",
+    "actualReturnDate": "2023-01-28T10:15:30.123Z",
+    "status": "Returned",
+    "updatedAt": "2023-01-28T10:15:30.123Z"
+  },
+  "message": "Loan updated successfully"
+}
+```
+
+**Loan API Error Codes:**
+
+| Status Code | Description |
+|-------------|-------------|
+| 400 | Invalid request data |
+| 401 | Unauthorized access |
+| 403 | Insufficient permissions |
+| 404 | Loan not found |
+| 409 | Document unavailable or already on loan |
+| 500 | Server error |
+
+### Reservation Endpoints
+
+These endpoints manage document reservations, allowing members to request currently unavailable documents.
+
+#### `GET /api/reservations`
+
+Retrieves a list of reservations with optional filtering.
+
+**Query Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `memberId` | string | Filter by member ID |
+| `documentId` | string | Filter by document ID |
+| `status` | string | Filter by status (Pending, Fulfilled, Cancelled) |
+| `includeDocument` | boolean | Include document details |
+| `includeMember` | boolean | Include member details |
+| `page` | number | Page number for pagination |
+| `limit` | number | Items per page for pagination |
+
+**Response Example:**
+
+```json
+{
+  "data": [
+    {
+      "id": "reservation_id",
+      "memberId": "member_id",
+      "documentId": "document_id",
+      "reservationDate": "2023-02-01T00:00:00.000Z",
+      "expiryDate": "2023-02-08T00:00:00.000Z",
+      "status": "Pending",
+      "document": {
+        // Document details...
+      },
+      "member": {
+        // Member details...
+      }
+    },
+    // More reservations...
+  ],
+  "pagination": {
+    "total": 30,
+    "page": 1,
+    "limit": 10,
+    "pages": 3
+  }
+}
+```
+
+#### `GET /api/reservations/:id`
+
+Retrieves a specific reservation by ID.
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string | Reservation ID |
+
+**Query Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `includeDocument` | boolean | Include document details |
+| `includeMember` | boolean | Include member details |
+
+**Response Example:**
+
+```json
+{
+  "data": {
+    "id": "reservation_id",
+    "memberId": "member_id",
+    "documentId": "document_id",
+    "reservationDate": "2023-02-01T00:00:00.000Z",
+    "expiryDate": "2023-02-08T00:00:00.000Z",
+    "status": "Pending",
+    "document": {
+      // Document details...
+    },
+    "member": {
+      // Member details...
+    }
+  }
+}
+```
+
+#### `POST /api/reservations`
+
+Creates a new reservation. Requires authentication.
+
+**Request Body:**
+
+```json
+{
+  "memberId": "member_id",
+  "documentId": "document_id"
+}
+```
+
+**Response Example:**
+
+```json
+{
+  "data": {
+    "id": "new_reservation_id",
+    "memberId": "member_id",
+    "documentId": "document_id",
+    "reservationDate": "2023-02-20T12:34:56.789Z",
+    "expiryDate": "2023-02-27T12:34:56.789Z",
+    "status": "Pending",
+    "createdAt": "2023-02-20T12:34:56.789Z",
+    "updatedAt": "2023-02-20T12:34:56.789Z"
+  },
+  "message": "Reservation created successfully"
+}
+```
+
+#### `PUT /api/reservations/:id`
+
+Updates a reservation status. Requires authentication.
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string | Reservation ID |
+
+**Request Body:**
+
+```json
+{
+  "status": "Fulfilled" // or "Cancelled"
+}
+```
+
+**Response Example:**
+
+```json
+{
+  "data": {
+    "id": "reservation_id",
+    "memberId": "member_id",
+    "documentId": "document_id",
+    "reservationDate": "2023-02-01T00:00:00.000Z",
+    "expiryDate": "2023-02-08T00:00:00.000Z",
+    "status": "Fulfilled",
+    "updatedAt": "2023-02-05T15:45:12.345Z"
+  },
+  "message": "Reservation updated successfully"
+}
+```
+
+**Reservation API Error Codes:**
+
+| Status Code | Description |
+|-------------|-------------|
+| 400 | Invalid request data |
+| 401 | Unauthorized access |
+| 403 | Insufficient permissions |
+| 404 | Reservation not found |
+| 409 | Document already available or already reserved |
+| 500 | Server error |
+
+### Member Endpoints
+
+These endpoints manage library members, providing functionality for member account operations.
+
+#### `GET /api/members`
+
+Retrieves a list of members. Requires staff authentication.
+
+**Query Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `search` | string | Search by name, email, or code |
+| `includeLoans` | boolean | Include loan information |
+| `includeReservations` | boolean | Include reservation information |
+| `page` | number | Page number for pagination |
+| `limit` | number | Items per page for pagination |
+
+**Response Example:**
+
+```json
+{
+  "data": [
+    {
+      "id": "member_id",
+      "code": "MEMBER001",
+      "firstName": "John",
+      "lastName": "Doe",
+      "email": "john.doe@example.com",
+      "phone": "555-123-4567",
+      "street": "123 Main St",
+      "city": "Anytown",
+      "province": "State",
+      "loans": [],
+      "reservations": []
+    },
+    // More members...
+  ],
+  "pagination": {
+    "total": 200,
+    "page": 1,
+    "limit": 10,
+    "pages": 20
+  }
+}
+```
+
+#### `GET /api/members/:id`
+
+Retrieves a specific member by ID. Members can access their own data, staff can access any member.
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string | Member ID |
+
+**Query Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `includeLoans` | boolean | Include loan information |
+| `includeReservations` | boolean | Include reservation information |
+
+**Response Example:**
+
+```json
+{
+  "data": {
+    "id": "member_id",
+    "code": "MEMBER001",
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john.doe@example.com",
+    "phone": "555-123-4567",
+    "street": "123 Main St",
+    "city": "Anytown",
+    "province": "State",
+    "loans": [
+      // Loan details...
+    ],
+    "reservations": [
+      // Reservation details...
+    ]
+  }
+}
+```
+
+#### `POST /api/members`
+
+Creates a new member. Staff can create members directly, or this can be part of a registration flow.
+
+**Request Body:**
+
+```json
+{
+  "firstName": "Jane",
+  "lastName": "Smith",
+  "email": "jane.smith@example.com",
+  "password": "securepassword",
+  "phone": "555-987-6543",
+  "street": "456 Oak Ave",
+  "city": "Othertown",
+  "province": "State"
+}
+```
+
+**Response Example:**
+
+```json
+{
+  "data": {
+    "id": "new_member_id",
+    "code": "MEMBER002", // Generated automatically
+    "firstName": "Jane",
+    "lastName": "Smith",
+    "email": "jane.smith@example.com",
+    "phone": "555-987-6543",
+    "street": "456 Oak Ave",
+    "city": "Othertown",
+    "province": "State",
+    "createdAt": "2023-02-20T12:34:56.789Z",
+    "updatedAt": "2023-02-20T12:34:56.789Z"
+  },
+  "message": "Member created successfully"
+}
+```
+
+#### `PUT /api/members/:id`
+
+Updates a member. Members can update their own data, staff can update any member.
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string | Member ID |
+
+**Request Body:**
+
+```json
+{
+  "phone": "555-111-2222",
+  "street": "789 Pine St",
+  "city": "Newtown",
+  // Include only fields to update
+}
+```
+
+**Response Example:**
+
+```json
+{
+  "data": {
+    "id": "member_id",
+    "code": "MEMBER001",
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john.doe@example.com",
+    "phone": "555-111-2222",
+    "street": "789 Pine St",
+    "city": "Newtown",
+    "province": "State",
+    "updatedAt": "2023-02-21T09:12:34.567Z"
+  },
+  "message": "Member updated successfully"
+}
+```
+
+#### `DELETE /api/members/:id`
+
+Deletes a member. Requires staff authentication.
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string | Member ID |
+
+**Response Example:**
+
+```json
+{
+  "message": "Member deleted successfully"
+}
+```
+
+**Member API Error Codes:**
+
+| Status Code | Description |
+|-------------|-------------|
+| 400 | Invalid request data |
+| 401 | Unauthorized access |
+| 403 | Insufficient permissions |
+| 404 | Member not found |
+| 409 | Email already exists |
+| 409 | Member has active loans |
+| 500 | Server error |
+
+### Employee Endpoints
+
+These endpoints manage library staff, providing functionality for employee account operations.
+
+#### `GET /api/employees`
+
+Retrieves a list of employees. Requires admin authentication.
+
+**Query Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `search` | string | Search by name, email, or code |
+| `role` | string | Filter by role (employee, admin) |
+| `page` | number | Page number for pagination |
+| `limit` | number | Items per page for pagination |
+
+**Response Example:**
+
+```json
+{
+  "data": [
+    {
+      "id": "employee_id",
+      "code": "EMP001",
+      "firstName": "Robert",
+      "lastName": "Taylor",
+      "email": "robert.taylor@library.com",
+      "phone": "555-333-4444",
+      "street": "321 Library Lane",
+      "city": "Booktown",
+      "province": "State",
+      "role": "employee"
+    },
+    // More employees...
+  ],
+  "pagination": {
+    "total": 20,
+    "page": 1,
+    "limit": 10,
+    "pages": 2
+  }
+}
+```
+
+#### `GET /api/employees/:id`
+
+Retrieves a specific employee by ID. Employees can access their own data, admins can access any employee.
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string | Employee ID |
+
+**Response Example:**
+
+```json
+{
+  "data": {
+    "id": "employee_id",
+    "code": "EMP001",
+    "firstName": "Robert",
+    "lastName": "Taylor",
+    "email": "robert.taylor@library.com",
+    "phone": "555-333-4444",
+    "street": "321 Library Lane",
+    "city": "Booktown",
+    "province": "State",
+    "role": "employee",
+    "createdAt": "2022-12-15T00:00:00.000Z",
+    "updatedAt": "2023-01-10T00:00:00.000Z"
+  }
+}
+```
+
+#### `POST /api/employees`
+
+Creates a new employee. Requires admin authentication.
+
+**Request Body:**
+
+```json
+{
+  "firstName": "Sarah",
+  "lastName": "Davis",
+  "email": "sarah.davis@library.com",
+  "password": "securepassword",
+  "phone": "555-555-6666",
+  "street": "654 Book Blvd",
+  "city": "Libraryville",
+  "province": "State",
+  "role": "admin"
+}
+```
+
+**Response Example:**
+
+```json
+{
+  "data": {
+    "id": "new_employee_id",
+    "code": "EMP002", // Generated automatically
+    "firstName": "Sarah",
+    "lastName": "Davis",
+    "email": "sarah.davis@library.com",
+    "phone": "555-555-6666",
+    "street": "654 Book Blvd",
+    "city": "Libraryville",
+    "province": "State",
+    "role": "admin",
+    "createdAt": "2023-02-20T12:34:56.789Z",
+    "updatedAt": "2023-02-20T12:34:56.789Z"
+  },
+  "message": "Employee created successfully"
+}
+```
+
+#### `PUT /api/employees/:id`
+
+Updates an employee. Employees can update their own data (except role), admins can update any employee.
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string | Employee ID |
+
+**Request Body:**
+
+```json
+{
+  "phone": "555-777-8888",
+  "role": "admin" // Only admins can change roles
+  // Include only fields to update
+}
+```
+
+**Response Example:**
+
+```json
+{
+  "data": {
+    "id": "employee_id",
+    "code": "EMP001",
+    "firstName": "Robert",
+    "lastName": "Taylor",
+    "email": "robert.taylor@library.com",
+    "phone": "555-777-8888",
+    "street": "321 Library Lane",
+    "city": "Booktown",
+    "province": "State",
+    "role": "admin",
+    "updatedAt": "2023-02-21T09:12:34.567Z"
+  },
+  "message": "Employee updated successfully"
+}
+```
+
+#### `DELETE /api/employees/:id`
+
+Deletes an employee. Requires admin authentication.
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | string | Employee ID |
+
+**Response Example:**
+
+```json
+{
+  "message": "Employee deleted successfully"
+}
+```
+
+**Employee API Error Codes:**
+
+| Status Code | Description |
+|-------------|-------------|
+| 400 | Invalid request data |
+| 401 | Unauthorized access |
+| 403 | Insufficient permissions |
+| 404 | Employee not found |
+| 409 | Email already exists |
+| 500 | Server error |
+
+### API Best Practices
+
+When using the Library Sphere API, follow these best practices:
+
+1. **Authentication**
+   - Always include appropriate authentication tokens in your requests
+   - Store tokens securely and handle expiration gracefully
+   - Use role-specific endpoints according to your permissions
+
+2. **Error Handling**
+   - Check HTTP status codes for operation success
+   - Parse error responses for detailed error information
+   - Implement appropriate retry logic for temporary failures
+
+3. **Pagination**
+   - Use pagination parameters for endpoints that return lists
+   - Respect pagination limits to avoid performance issues
+   - Implement proper page navigation in your UI
+
+4. **Data Validation**
+   - Validate input data before sending requests
+   - Handle validation errors gracefully
+   - Follow the data formats specified in this documentation
+
+5. **Performance**
+   - Use appropriate include parameters to minimize the number of requests
+   - Cache frequently accessed data when appropriate
+   - Implement optimistic UI updates for better user experience
 
 ## Database Schema
 
-*Sections to be completed*
+The Library Sphere system uses MongoDB as its database, with the Prisma ORM providing the schema definition and database access. This section details the data models and their relationships.
+
+### Member Model
+
+The Member model represents library patrons who can borrow documents.
+
+```prisma
+model Member {
+  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
+  code               String        @unique
+  firstName          String
+  lastName           String
+  street             String
+  city               String
+  province           String
+  phone              String
+  email              String        @unique
+  password           String
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  loans              Loan[]
+  reservations       Reservation[]
+}
+```
+
+**Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String | Unique identifier (MongoDB ObjectId) |
+| `code` | String | Unique member code for identification |
+| `firstName` | String | Member's first name |
+| `lastName` | String | Member's last name |
+| `street` | String | Street address |
+| `city` | String | City of residence |
+| `province` | String | State/province of residence |
+| `phone` | String | Contact phone number |
+| `email` | String | Unique email address (used for login) |
+| `password` | String | Hashed password for authentication |
+| `createdAt` | DateTime | Account creation timestamp |
+| `updatedAt` | DateTime | Last update timestamp |
+
+**Relationships:**
+- One-to-many relationship with `Loan` (one member can have multiple loans)
+- One-to-many relationship with `Reservation` (one member can have multiple reservations)
+
+**Constraints:**
+- Unique email address to prevent duplicate accounts
+- Unique member code for identification
+
+### Employee Model
+
+The Employee model represents library staff members with different levels of access.
+
+```prisma
+model Employee {
+  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
+  code               String        @unique
+  firstName          String
+  lastName           String
+  street             String
+  city               String
+  province           String
+  phone              String
+  email              String        @unique
+  password           String
+  role               String        // employee or admin
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+}
+```
+
+**Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String | Unique identifier (MongoDB ObjectId) |
+| `code` | String | Unique employee code for identification |
+| `firstName` | String | Employee's first name |
+| `lastName` | String | Employee's last name |
+| `street` | String | Street address |
+| `city` | String | City of residence |
+| `province` | String | State/province of residence |
+| `phone` | String | Contact phone number |
+| `email` | String | Unique email address (used for login) |
+| `password` | String | Hashed password for authentication |
+| `role` | String | Access level (employee or admin) |
+| `createdAt` | DateTime | Account creation timestamp |
+| `updatedAt` | DateTime | Last update timestamp |
+
+**Role Values:**
+- `employee`: Regular staff with document and member management abilities
+- `admin`: Administrators with additional employee management capabilities
+
+**Constraints:**
+- Unique email address to prevent duplicate accounts
+- Unique employee code for identification
+
+### Document Model
+
+The Document model represents items in the library collection, including books, comics, video games, and films.
+
+```prisma
+model Document {
+  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
+  title              String
+  author             String
+  year               Int
+  category           String        // Novel, Comics, VideoGame, Film
+  ageRating          String        // Kids, Teens, Adults
+  genre              String
+  description        String
+  isbn               String?
+  libraryCode        String        @unique
+  coverImage         String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  loans              Loan[]
+  reservations       Reservation[]
+}
+```
+
+**Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String | Unique identifier (MongoDB ObjectId) |
+| `title` | String | Document title |
+| `author` | String | Author or creator |
+| `year` | Int | Publication or release year |
+| `category` | String | Type of document (Novel, Comics, VideoGame, Film) |
+| `ageRating` | String | Age appropriateness (Kids, Teens, Adults) |
+| `genre` | String | Genre classification |
+| `description` | String | Detailed description |
+| `isbn` | String? | ISBN for books (optional) |
+| `libraryCode` | String | Unique code for library cataloging |
+| `coverImage` | String? | URL to cover image (optional) |
+| `createdAt` | DateTime | Record creation timestamp |
+| `updatedAt` | DateTime | Last update timestamp |
+
+**Relationships:**
+- One-to-many relationship with `Loan` (one document can have multiple loans over time)
+- One-to-many relationship with `Reservation` (one document can have multiple reservations)
+
+**Category Values:**
+- `Novel`: Books and novels
+- `Comics`: Comic books and graphic novels
+- `VideoGame`: Video games across platforms
+- `Film`: Movies and documentaries
+
+**Age Rating Values:**
+- `Kids`: Suitable for children
+- `Teens`: Suitable for teenagers
+- `Adults`: Suitable for adults
+
+**Constraints:**
+- Unique library code for identification
+
+### Loan Model
+
+The Loan model represents the borrowing of a document by a member.
+
+```prisma
+model Loan {
+  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
+  member             Member        @relation(fields: [memberId], references: [id])
+  memberId           String        @db.ObjectId
+  document           Document      @relation(fields: [documentId], references: [id])
+  documentId         String        @db.ObjectId
+  loanDate           DateTime      @default(now())
+  expectedReturnDate DateTime
+  actualReturnDate   DateTime?
+  status             String        @default("Active") // Active, Returned
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@unique([memberId, documentId, loanDate])
+  @@index([documentId, status])
+}
+```
+
+**Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String | Unique identifier (MongoDB ObjectId) |
+| `memberId` | String | Reference to the borrowing member |
+| `documentId` | String | Reference to the borrowed document |
+| `loanDate` | DateTime | Date when the loan was created |
+| `expectedReturnDate` | DateTime | Due date for return |
+| `actualReturnDate` | DateTime? | Actual return date (null if not yet returned) |
+| `status` | String | Current status of the loan |
+| `createdAt` | DateTime | Record creation timestamp |
+| `updatedAt` | DateTime | Last update timestamp |
+
+**Relationships:**
+- Many-to-one relationship with `Member` (many loans can belong to one member)
+- Many-to-one relationship with `Document` (many loans can be associated with one document over time)
+
+**Status Values:**
+- `Active`: Document is currently on loan
+- `Returned`: Document has been returned
+
+**Constraints:**
+- Compound uniqueness constraint to prevent duplicate loans
+- Index on document ID and status for efficient queries
+
+### Reservation Model
+
+The Reservation model represents requests for documents that are currently unavailable.
+
+```prisma
+model Reservation {
+  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
+  member             Member        @relation(fields: [memberId], references: [id])
+  memberId           String        @db.ObjectId
+  document           Document      @relation(fields: [documentId], references: [id])
+  documentId         String        @db.ObjectId
+  reservationDate    DateTime      @default(now())
+  expiryDate         DateTime
+  status             String        // Pending, Fulfilled, Cancelled
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@unique([memberId, documentId, reservationDate])
+}
+```
+
+**Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | String | Unique identifier (MongoDB ObjectId) |
+| `memberId` | String | Reference to the reserving member |
+| `documentId` | String | Reference to the reserved document |
+| `reservationDate` | DateTime | Date when the reservation was created |
+| `expiryDate` | DateTime | Date when the hold expires |
+| `status` | String | Current status of the reservation |
+| `createdAt` | DateTime | Record creation timestamp |
+| `updatedAt` | DateTime | Last update timestamp |
+
+**Relationships:**
+- Many-to-one relationship with `Member` (many reservations can belong to one member)
+- Many-to-one relationship with `Document` (many reservations can be associated with one document)
+
+**Status Values:**
+- `Pending`: Waiting for document to become available
+- `Fulfilled`: Reservation has been converted to a loan
+- `Cancelled`: Reservation was cancelled by member or staff
+
+**Constraints:**
+- Compound uniqueness constraint to prevent duplicate reservations
+
+### NextAuth Models
+
+The following models support NextAuth.js authentication:
+
+#### Account Model
+
+```prisma
+model Account {
+  id                 String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId             String  @db.ObjectId
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String? @db.String
+  access_token       String? @db.String
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String? @db.String
+  session_state      String?
+
+  @@unique([provider, providerAccountId])
+}
+```
+
+#### Session Model
+
+```prisma
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+}
+```
+
+#### VerificationToken Model
+
+```prisma
+model VerificationToken {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+```
+
+### Database Indexes
+
+The following indexes are defined to optimize database performance:
+
+| Model | Index | Purpose |
+|-------|-------|---------|
+| Member | `email` | Fast lookup during authentication |
+| Member | `code` | Quick member identification |
+| Employee | `email` | Fast lookup during authentication |
+| Employee | `code` | Quick employee identification |
+| Document | `libraryCode` | Fast lookup by library code |
+| Document | `category` | Filtering by document type |
+| Loan | `[documentId, status]` | Check document availability |
+| Loan | `[memberId, status]` | Member's active loans |
+| Reservation | `[documentId, status]` | Check pending reservations |
+
+### Data Validation Rules
+
+The Library Sphere system enforces the following validation rules at the database level:
+
+1. **Email addresses** must be unique across the Member and Employee collections
+2. **Member and employee codes** must be unique within their respective collections
+3. **Document library codes** must be unique
+4. **Loans** cannot be duplicated for the same member, document, and loan date
+5. **Reservations** cannot be duplicated for the same member, document, and reservation date
+
+Additional validation is implemented at the application level for business rules that cannot be expressed in the schema.
+
+### Database Relationships Diagram
+
+```
+Member
+  │
+  ├── Loans (one-to-many) ──┐
+  │                         │
+  └── Reservations (one-to-many) ┐
+                           │     │
+Document                   │     │
+  │                        │     │
+  ├── Loans (one-to-many) ─┘     │
+  │                              │
+  └── Reservations (one-to-many) ┘
+```
+
+This diagram illustrates the key relationships between the core entities in the Library Sphere database.
 
 ## Development
 
-*Sections to be completed*
+This section provides information for developers working on or contributing to the Library Sphere project. It covers the project structure, coding conventions, testing approaches, and contribution guidelines.
+
+### Project Structure
+
+Library Sphere follows a structured organization to maintain clean separation of concerns and facilitate code maintainability.
+
+#### Directory Organization
+
+```
+library-sphere/
+├── .next/                  # Next.js build output (generated)
+├── prisma/                 # Database schema and migrations
+│   ├── schema.prisma       # Prisma schema definition
+│   └── seed.js             # Database seeding script
+├── public/                 # Static files served by Next.js
+│   ├── images/             # Images and icons
+│   └── favicon.ico         # Website favicon
+├── src/                    # Source code
+│   ├── app/                # Next.js App Router pages
+│   │   ├── api/            # API route handlers
+│   │   │   ├── auth/       # Authentication endpoints
+│   │   │   ├── documents/  # Document endpoints
+│   │   │   ├── employees/  # Employee endpoints
+│   │   │   ├── loans/      # Loan endpoints
+│   │   │   ├── members/    # Member endpoints
+│   │   │   └── reservations/ # Reservation endpoints
+│   │   ├── catalog/        # Catalog browsing page
+│   │   ├── documents/      # Document management pages
+│   │   ├── employees/      # Employee management pages
+│   │   ├── loans/          # Loan management pages
+│   │   ├── login/          # Authentication pages
+│   │   ├── members/        # Member management pages
+│   │   ├── reservations/   # Reservation management pages
+│   │   ├── layout.jsx      # Root layout with providers
+│   │   └── page.jsx        # Home page
+│   ├── components/         # React components
+│   │   ├── layout/         # Layout components
+│   │   │   ├── Header.jsx  # Site header
+│   │   │   ├── Footer.jsx  # Site footer
+│   │   │   ├── Sidebar.jsx # Navigation sidebar
+│   │   │   └── ...
+│   │   ├── providers/      # React context providers
+│   │   │   └── SessionProvider.jsx # Auth session provider
+│   │   └── ui/             # UI components
+│   │       ├── Button.jsx  # Button component
+│   │       ├── Card.jsx    # Card component
+│   │       ├── Dialog.jsx  # Dialog component
+│   │       └── ...
+│   ├── lib/                # Utility functions and shared code
+│   │   ├── auth.js         # Authentication utilities
+│   │   ├── prisma.js       # Prisma client instance
+│   │   ├── utils.js        # General utilities
+│   │   └── ...
+└── package.json            # Project dependencies and scripts
+```
+
+#### Key File Locations
+
+| Type | Location |
+|------|----------|
+| **Page Components** | `src/app/*/page.jsx` |
+| **API Handlers** | `src/app/api/*/route.js` |
+| **React Components** | `src/components/` |
+| **Database Schema** | `prisma/schema.prisma` |
+| **Client-Side Utilities** | `src/lib/` |
+| **Authentication Config** | `src/app/api/auth/[...nextauth]/route.js` |
+
+#### Code Organization Principles
+
+- **Feature Modularity**: Code is organized primarily by feature (catalog, loans, etc.)
+- **Component Reusability**: UI components are designed to be reusable across features
+- **API Consistency**: API endpoints follow a consistent structure and naming convention
+- **Separation of Concerns**: UI components, data fetching, and business logic are kept separate
+- **Progressive Enhancement**: Core functionality works without JavaScript, enhanced with client-side features
+
+### Coding Conventions
+
+Library Sphere follows consistent coding conventions to maintain code quality and readability.
+
+#### JavaScript Style Guidelines
+
+- **Formatting**: Uses Prettier with default settings
+- **Variables**: camelCase for variables and functions
+- **Components**: PascalCase for React components
+- **Constants**: UPPER_CASE for static values
+- **Promises**: Prefer async/await over promise chains
+- **Imports**: Group imports by source (React, Next.js, components, utils)
+- **Export Style**: Prefer named exports for utilities, default exports for components
+
+#### React Patterns
+
+- **Functional Components**: Use React functional components with hooks
+- **Props**: Destructure props in function parameters
+- **State Management**: Use React hooks for state (useState, useReducer)
+- **Side Effects**: Handle side effects with useEffect
+- **Context**: Use React Context for shared state across components
+- **Event Handlers**: Prefix event handlers with "handle" (e.g., handleSubmit)
+- **Component Organization**:
+  ```jsx
+  // Component structure
+  import { dependencies } from 'packages';
+  import { internal components } from 'components';
+  
+  // Component definition
+  function ComponentName({ prop1, prop2 }) {
+    // Hooks
+    const [state, setState] = useState(initialState);
+    
+    // Event handlers
+    const handleEvent = () => { /* ... */ };
+    
+    // Helper functions
+    const helperFunction = () => { /* ... */ };
+    
+    // Render
+    return (
+      <div>
+        {/* Component JSX */}
+      </div>
+    );
+  }
+  
+  export default ComponentName;
+  ```
+
+#### File Naming Conventions
+
+- **React Components**: `PascalCase.jsx`
+- **API Routes**: `route.js`
+- **Utility Files**: `camelCase.js`
+- **Configuration Files**: `camelCase.config.js`
+- **Test Files**: `ComponentName.test.jsx`
+
+#### Styling Conventions
+
+- **Approach**: Tailwind CSS utility classes
+- **Custom Components**: shadcn/ui components with Tailwind CSS
+- **Component Styling**: Use CSS variable system for theme customization
+- **Responsive Design**: Mobile-first approach with responsive utility classes
+- **Dark Mode**: Support via Tailwind's dark mode classes
+
+#### Documentation Conventions
+
+- **JSDoc**: Use JSDoc comments for functions and components
+- **Code Comments**: Comment complex logic and business rules
+- **README**: Maintain up-to-date README with setup instructions
+- **Change Log**: Document significant changes in version history
+
+### Testing
+
+Library Sphere implements a comprehensive testing strategy to ensure code quality and reliability.
+
+#### Testing Approach
+
+The project follows these testing principles:
+- **Component Testing**: Test UI components in isolation
+- **Integration Testing**: Test interactions between components
+- **API Testing**: Verify API endpoints work as expected
+- **End-to-End Testing**: Validate complete user workflows
+
+#### Testing Tools
+
+- **Jest**: JavaScript testing framework
+- **React Testing Library**: Component testing utilities
+- **MSW (Mock Service Worker)**: API mocking
+- **Cypress**: End-to-end testing
+
+#### Test Organization
+
+Tests are organized to mirror the source code structure:
+
+```
+src/
+├── components/
+│   └── ui/
+│       ├── Button.jsx
+│       └── Button.test.jsx
+├── app/
+│   └── api/
+│       └── documents/
+│           ├── route.js
+│           └── route.test.js
+tests/
+├── integration/
+│   └── login.test.js
+└── e2e/
+    └── loan-process.spec.js
+```
+
+#### Writing Tests
+
+**Component Tests:**
+
+```jsx
+// Button.test.jsx
+import { render, screen, fireEvent } from '@testing-library/react';
+import Button from './Button';
+
+describe('Button component', () => {
+  it('renders correctly', () => {
+    render(<Button>Click me</Button>);
+    expect(screen.getByText('Click me')).toBeInTheDocument();
+  });
+
+  it('calls onClick handler when clicked', () => {
+    const handleClick = jest.fn();
+    render(<Button onClick={handleClick}>Click me</Button>);
+    fireEvent.click(screen.getByText('Click me'));
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+});
+```
+
+**API Tests:**
+
+```javascript
+// route.test.js
+import { createMocks } from 'node-mocks-http';
+import handler from './route';
+import { prismaMock } from '@/lib/prisma-mock';
+
+describe('/api/documents endpoint', () => {
+  it('returns a list of documents', async () => {
+    prismaMock.document.findMany.mockResolvedValue([
+      { id: '1', title: 'Test Document' }
+    ]);
+    
+    const { req, res } = createMocks({
+      method: 'GET',
+    });
+    
+    await handler(req, res);
+    
+    expect(res._getStatusCode()).toBe(200);
+    expect(JSON.parse(res._getData())).toEqual({
+      data: [{ id: '1', title: 'Test Document' }]
+    });
+  });
+});
+```
+
+#### Running Tests
+
+Test execution is configured in package.json:
+
+```json
+{
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:e2e": "cypress run"
+  }
+}
+```
+
+#### Continuous Integration
+
+Tests are automatically run on:
+- Pull request creation
+- Push to main branch
+- Scheduled daily runs
+
+### Contributing
+
+This section outlines the process for contributing to the Library Sphere project.
+
+#### Getting Started
+
+1. **Fork the Repository**
+   - Create a fork of the main repository on GitHub
+
+2. **Clone Your Fork**
+   ```bash
+   git clone https://github.com/your-username/library-sphere.git
+   cd library-sphere
+   ```
+
+3. **Set Up Development Environment**
+   ```bash
+   npm install
+   cp .env.example .env.local
+   # Configure .env.local with your MongoDB connection string
+   ```
+
+4. **Run the Development Server**
+   ```bash
+   npm run dev
+   ```
+
+#### Development Workflow
+
+1. **Create a Branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+   
+   Branch naming conventions:
+   - `feature/` - New features
+   - `fix/` - Bug fixes
+   - `refactor/` - Code refactoring
+   - `docs/` - Documentation changes
+   - `test/` - Adding or updating tests
+
+2. **Make Your Changes**
+   - Follow the coding conventions
+   - Update or add tests for your changes
+   - Update documentation if necessary
+
+3. **Run Tests**
+   ```bash
+   npm test
+   ```
+
+4. **Commit Your Changes**
+   ```bash
+   git add .
+   git commit -m "feat: add your feature description"
+   ```
+   
+   Commit message format:
+   - `feat:` - A new feature
+   - `fix:` - A bug fix
+   - `docs:` - Documentation changes
+   - `style:` - Code style changes (formatting)
+   - `refactor:` - Code changes that neither fix bugs nor add features
+   - `test:` - Adding or updating tests
+   - `chore:` - Changes to build process, dependencies, etc.
+
+5. **Push to Your Fork**
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+
+6. **Create a Pull Request**
+   - Go to the GitHub repository
+   - Click "New Pull Request"
+   - Select your branch
+   - Fill in the PR template with details about your changes
+
+#### Pull Request Process
+
+1. **Initial Review**
+   - Automated tests must pass
+   - At least one maintainer must review the code
+   - Address any feedback from reviewers
+
+2. **Final Approval**
+   - Once approved, a maintainer will merge your PR
+   - Squash merging is preferred for clean commit history
+
+3. **After Merge**
+   - Delete your branch
+   - Update your local repository with the latest changes from main
+
+#### Code Review Guidelines
+
+- **Focus on the Code**: Review the code, not the author
+- **Be Constructive**: Suggest improvements rather than just pointing out issues
+- **Consider Context**: Take into account the overall project goals and constraints
+- **Look for Edge Cases**: Consider potential failure modes and security implications
+- **Check Tests**: Ensure new code is adequately tested
+
+#### Documentation
+
+When contributing, update documentation to reflect your changes:
+
+- **Code Comments**: Add inline documentation for complex logic
+- **README**: Update setup instructions if dependencies change
+- **DOCUMENTATION.md**: Update feature documentation for new or changed features
+- **JSDoc**: Add or update JSDoc comments for functions and components
+
+#### Support and Questions
+
+If you need help or have questions:
+
+- **Open an Issue**: Create a GitHub issue with the 'question' label
+- **Discussion Forum**: Use the GitHub Discussions feature for longer conversations
+- **Ask for Help**: Tag maintainers in your issue if you need specific expertise
 
 ## Troubleshooting
 
-*Sections to be completed*
+This section provides guidance on resolving common issues that may arise when using or developing with Library Sphere.
+
+### Common Issues
+
+#### Authentication Problems
+
+1. **Unable to Log In**
+   
+   **Symptoms**:
+   - Login form submission fails
+   - "Invalid credentials" error
+   - Endless loading after login attempt
+   
+   **Possible Causes and Solutions**:
+   
+   - **Incorrect Credentials**
+     - Verify email and password are correct
+     - Check for caps lock or typing errors
+     - Reset password if necessary
+   
+   - **Database Connection Issues**
+     - Verify DATABASE_URL is correct in environment variables
+     - Check if MongoDB Atlas service is available
+     - Ensure network allows connections to the database
+   
+   - **NextAuth Configuration**
+     - Verify NEXTAUTH_SECRET and NEXTAUTH_URL are set correctly
+     - Check for errors in NextAuth logs
+     - Ensure the authentication provider is properly configured
+
+2. **Session Expires Too Quickly**
+   
+   **Symptoms**:
+   - Frequent logout while using the application
+   - "Unauthorized" errors after brief inactivity
+   
+   **Solutions**:
+   
+   - Check NextAuth.js configuration for session duration
+   - Verify that cookies are not being blocked by browser settings
+   - Ensure the `maxAge` setting is appropriate for your use case
+
+3. **Role-Based Access Issues**
+   
+   **Symptoms**:
+   - Access denied to features that should be available
+   - Redirect loops when accessing certain pages
+   
+   **Solutions**:
+   
+   - Verify user role is correctly set in the database
+   - Check role assignment during authentication
+   - Inspect session token to confirm role information is present
+   - Clear browser cookies and log in again
+
+#### API and Data Issues
+
+1. **API Endpoints Return Errors**
+   
+   **Symptoms**:
+   - 400, 401, 403, or 500 errors from API calls
+   - Failed data loading in the UI
+   
+   **Solutions**:
+   
+   - Check browser console for detailed error messages
+   - Verify authentication token is valid
+   - Ensure request payload matches expected format
+   - Check server logs for backend errors
+   - Verify database connection is active
+
+2. **Missing or Incomplete Data**
+   
+   **Symptoms**:
+   - Empty listings where data should appear
+   - Partial information displayed in the UI
+   
+   **Solutions**:
+   
+   - Verify database contains the expected records
+   - Check API response format matches UI expectations
+   - Ensure relations are properly included in database queries
+   - Look for filter parameters that might be excluding data
+
+3. **Duplicate Entries**
+   
+   **Symptoms**:
+   - Multiple identical loans or reservations
+   - Duplicate document entries
+   
+   **Solutions**:
+   
+   - Verify unique constraints in database schema
+   - Check for race conditions in API endpoints
+   - Ensure transaction isolation in multi-step operations
+   - Add deduplication logic if needed
+
+#### Installation and Setup Issues
+
+1. **Unable to Start Development Server**
+   
+   **Symptoms**:
+   - Error when running `npm run dev`
+   - Server starts but crashes immediately
+   
+   **Solutions**:
+   
+   - Verify Node.js version meets requirements (v18.17.0+)
+   - Ensure all dependencies are installed (`npm install`)
+   - Check for port conflicts (default port is 3000)
+   - Verify environment variables are correctly set
+   - Look for syntax errors in recently modified files
+
+2. **Database Connection Failures**
+   
+   **Symptoms**:
+   - Prisma errors when starting the application
+   - "Could not connect to database" messages
+   
+   **Solutions**:
+   
+   - Verify MongoDB Atlas credentials are correct
+   - Check network connection and firewall settings
+   - Ensure IP address is whitelisted in MongoDB Atlas
+   - Verify database exists and has correct name
+   - Run `npx prisma generate` to update Prisma client
+
+3. **Build Errors in Production**
+   
+   **Symptoms**:
+   - Build fails on Vercel or other hosting platforms
+   - TypeScript errors during build process
+   
+   **Solutions**:
+   
+   - Check build logs for specific error messages
+   - Verify all dependencies are included in package.json
+   - Ensure NODE_ENV is set to "production"
+   - Add necessary build commands for Prisma
+   - Fix any type errors or lint issues
+
+#### UI and Rendering Issues
+
+1. **Layout Problems**
+   
+   **Symptoms**:
+   - Elements overlapping or misaligned
+   - Content overflowing containers
+   - Inconsistent appearance across devices
+   
+   **Solutions**:
+   
+   - Test on different screen sizes and browsers
+   - Use browser dev tools to inspect layout issues
+   - Verify Tailwind CSS classes are applied correctly
+   - Check for missing responsive design classes
+   - Ensure CSS variables are properly defined
+
+2. **Slow UI Performance**
+   
+   **Symptoms**:
+   - Sluggish interaction response
+   - Delayed rendering after data changes
+   - Long loading times for pages
+   
+   **Solutions**:
+   
+   - Optimize rendering with React.memo or useMemo
+   - Implement pagination for large data sets
+   - Add loading states for asynchronous operations
+   - Reduce unnecessary re-renders
+   - Check for excessive API calls
+
+3. **Form Submission Issues**
+   
+   **Symptoms**:
+   - Forms submit but data isn't saved
+   - Validation errors that aren't clear
+   - Multiple identical submissions
+   
+   **Solutions**:
+   
+   - Check form data is correctly formatted
+   - Verify API endpoint is processing data correctly
+   - Implement submit button disabling to prevent duplicates
+   - Ensure validation messages are displayed to users
+   - Add clear success/error feedback after submission
+
+### Debugging Tips
+
+#### Server-Side Debugging
+
+1. **Logging**
+   
+   Add detailed logging to troubleshoot server-side issues:
+   
+   ```javascript
+   // Enhanced logging in API route
+   export async function GET(req) {
+     console.log('Request received:', req.url);
+     try {
+       const data = await prisma.document.findMany();
+       console.log('Data retrieved:', data.length, 'records');
+       return Response.json({ data });
+     } catch (error) {
+       console.error('Error in document API:', error);
+       return Response.json({ error: error.message }, { status: 500 });
+     }
+   }
+   ```
+   
+   Key areas to add logging:
+   - API route entry points
+   - Database operations
+   - Authentication flows
+   - Error handling blocks
+
+2. **Environment Inspection**
+   
+   Create a diagnostic endpoint to verify environment configuration:
+   
+   ```javascript
+   // Development-only diagnostic endpoint
+   export async function GET(req) {
+     if (process.env.NODE_ENV !== 'development') {
+       return Response.json({ error: 'Not available in production' }, { status: 403 });
+     }
+     
+     return Response.json({
+       nodeEnv: process.env.NODE_ENV,
+       databaseConnected: await checkDatabaseConnection(),
+       nextAuthConfigured: Boolean(process.env.NEXTAUTH_SECRET),
+       apiVersion: '1.0.0'
+     });
+   }
+   ```
+
+3. **Database Inspection**
+   
+   Use Prisma Studio to inspect and manipulate database records:
+   
+   ```bash
+   npx prisma studio
+   ```
+   
+   This provides a web interface to view and edit all database collections.
+
+#### Client-Side Debugging
+
+1. **React Developer Tools**
+   
+   Install the React Developer Tools browser extension to inspect:
+   - Component hierarchy
+   - Props and state
+   - Render performance
+   - Context values
+
+2. **Network Monitoring**
+   
+   Use browser developer tools to:
+   - Monitor API requests and responses
+   - Check for failed network requests
+   - Verify request payloads
+   - Measure response times
+
+3. **Client-Side Logging**
+   
+   Implement a custom logging utility:
+   
+   ```javascript
+   // lib/logger.js
+   const logger = {
+     debug: (message, ...args) => {
+       if (process.env.NODE_ENV !== 'production') {
+         console.debug(`[DEBUG] ${message}`, ...args);
+       }
+     },
+     info: (message, ...args) => {
+       console.info(`[INFO] ${message}`, ...args);
+     },
+     error: (message, ...args) => {
+       console.error(`[ERROR] ${message}`, ...args);
+     }
+   };
+   
+   export default logger;
+   ```
+   
+   Use it throughout your components:
+   
+   ```javascript
+   import logger from '@/lib/logger';
+   
+   function Component() {
+     logger.debug('Component rendering', { props });
+     // Component code...
+   }
+   ```
+
+#### Troubleshooting NextAuth.js
+
+1. **Session Debugging**
+   
+   Create a component to display current session details:
+   
+   ```jsx
+   // components/SessionDebug.jsx (development only)
+   import { useSession } from "next-auth/react";
+   
+   export default function SessionDebug() {
+     const { data: session, status } = useSession();
+     
+     if (process.env.NODE_ENV === 'production') return null;
+     
+     return (
+       <div className="bg-yellow-100 p-4 rounded-md text-xs">
+         <h3 className="font-bold">Session Debug</h3>
+         <p>Status: {status}</p>
+         <pre>{JSON.stringify(session, null, 2)}</pre>
+       </div>
+     );
+   }
+   ```
+
+2. **Authentication Flow Testing**
+   
+   Create a test script to verify authentication flows:
+   
+   ```javascript
+   // scripts/test-auth.js
+   async function testAuth() {
+     try {
+       // Test member login
+       const memberResponse = await fetch('http://localhost:3000/api/auth/callback/credentials', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ 
+           email: 'test@example.com', 
+           password: 'password123',
+           role: 'member' 
+         })
+       });
+       
+       console.log('Member auth test:', memberResponse.status === 200 ? 'PASS' : 'FAIL');
+       console.log(await memberResponse.json());
+       
+       // Add more tests as needed
+     } catch (error) {
+       console.error('Auth test failed:', error);
+     }
+   }
+   
+   testAuth();
+   ```
+
+#### Performance Troubleshooting
+
+1. **React Profiler**
+   
+   Use React Profiler to identify performance bottlenecks:
+   
+   ```jsx
+   // In development only
+   import { Profiler } from 'react';
+   
+   function onRenderCallback(id, phase, actualDuration, baseDuration, startTime, commitTime) {
+     console.log(`Component ${id} took ${actualDuration}ms to render`);
+   }
+   
+   // Wrap slow components
+   <Profiler id="CatalogPage" onRender={onRenderCallback}>
+     <CatalogPage />
+   </Profiler>
+   ```
+
+2. **Performance Monitoring**
+   
+   Implement basic performance metrics:
+   
+   ```javascript
+   // Add to layout.js or individual pages
+   useEffect(() => {
+     if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+       const t0 = performance.now();
+       
+       return () => {
+         const t1 = performance.now();
+         console.log(`Page took ${t1 - t0}ms to render completely`);
+       };
+     }
+   }, []);
+   ```
+
+3. **Memory Leak Detection**
+   
+   Check for memory leaks in components:
+   
+   ```javascript
+   // Track component mount/unmount
+   useEffect(() => {
+     console.log('Component mounted');
+     
+     return () => {
+       console.log('Component unmounted');
+     };
+   }, []);
+   ```
+
+### Resolution Workflow
+
+When encountering issues, follow this systematic resolution workflow:
+
+1. **Identify the Problem**
+   - Determine exactly what's not working
+   - Document steps to reproduce the issue
+   - Note any error messages or unusual behavior
+
+2. **Isolate the Cause**
+   - Determine if it's a frontend or backend issue
+   - Check if it's environment-specific
+   - Identify which component or feature is affected
+
+3. **Apply Targeted Solutions**
+   - Address the specific issue identified
+   - Start with the simplest potential fix
+   - Test thoroughly after each change
+
+4. **Document the Solution**
+   - Record what fixed the issue
+   - Update documentation if needed
+   - Share the solution with the team
+
+5. **Implement Preventive Measures**
+   - Add validation to prevent similar issues
+   - Improve error handling
+   - Add automated tests for the scenario
 
 ## Changelog
 
-*Sections to be completed* 
+This section documents the version history of Library Sphere and outlines planned future enhancements.
+
+### Version History
+
+#### v1.0.0 (Initial Release) - July 2023
+
+**Core Features:**
+- Basic authentication system for members and staff
+- Document catalog with browsing and search
+- Loan management system
+- Member management
+- Staff administration
+
+**Technical Implementation:**
+- Next.js 13 with App Router
+- MongoDB database integration with Prisma
+- NextAuth.js authentication
+- shadcn/ui component library
+- Tailwind CSS styling
+
+#### v1.1.0 - September 2023
+
+**New Features:**
+- Reservation system for unavailable documents
+- Enhanced document details page
+- Improved search functionality with filters
+- Member profile customization
+- Basic reporting for administrators
+
+**Improvements:**
+- Performance optimizations for catalog browsing
+- Enhanced mobile responsiveness
+- Better error handling and user feedback
+- UI refinements across all pages
+- Extended database indexing for faster queries
+
+**Bug Fixes:**
+- Fixed authentication persistence issues
+- Resolved race conditions in loan processing
+- Corrected date handling in loan durations
+- Fixed styling inconsistencies in various components
+- Addressed accessibility issues in form controls
+
+#### v1.2.0 - November 2023
+
+**New Features:**
+- Document ratings and reviews
+- Staff notification system
+- Administrative dashboard with key metrics
+- Batch operations for document management
+- Print functionality for loan receipts
+
+**Improvements:**
+- Redesigned catalog interface
+- Enhanced form validation with clear error messages
+- Optimized database queries for faster response times
+- Added document availability indicators
+- Improved session management
+
+**Bug Fixes:**
+- Resolved issues with reservation expiry processing
+- Fixed document filtering in certain edge cases
+- Corrected permission checks in staff operations
+- Addressed data inconsistencies in member profiles
+- Fixed layout issues on ultra-wide screens
+
+#### v1.3.0 - February 2024
+
+**New Features:**
+- Multi-language support (English, French, Spanish)
+- Document recommendation system
+- Enhanced reporting with charts and graphs
+- Customizable email notifications
+- Staff activity logging
+
+**Improvements:**
+- Refined user interface with new design elements
+- Faster application loading and navigation
+- Enhanced search algorithm with better relevance
+- Improved error recovery mechanisms
+- Optimized image loading for document covers
+
+**Bug Fixes:**
+- Resolved session timeout handling issues
+- Fixed search results pagination
+- Corrected loan date calculations
+- Addressed mobile navigation menu bugs
+- Fixed document sorting inconsistencies
+
+#### v1.4.0 (Current Version) - May 2024
+
+**New Features:**
+- Fine management system for overdue returns
+- Member communication tools for staff
+- Barcode scanner integration for check-out/check-in
+- Document import/export functionality
+- Advanced member analytics
+
+**Improvements:**
+- Major performance optimizations across all features
+- Redesigned loan and reservation workflows
+- Enhanced accessibility compliance
+- Improved error handling with guided resolution
+- Updated component library for better UI consistency
+
+**Bug Fixes:**
+- Fixed concurrent loan processing issues
+- Resolved MongoDB connection pooling problems
+- Corrected reservation conflict resolution
+- Fixed user role assignment inconsistencies
+- Addressed dark mode styling issues
+
+**Security Enhancements:**
+- Implemented stronger password policies
+- Enhanced session security measures
+- Added rate limiting for authentication attempts
+- Improved data validation across all inputs
+- Updated dependencies to resolve security vulnerabilities
+
+### Upcoming Features
+
+The following features are planned for future releases of Library Sphere:
+
+#### Short-Term Roadmap (Next 3-6 Months)
+
+1. **Digital Content Management**
+   - Support for e-books and digital media
+   - Online document viewer integration
+   - Digital lending workflows
+   - Content access control
+
+2. **Advanced Search Capabilities**
+   - Full-text search across all document fields
+   - Natural language query processing
+   - Search suggestions and corrections
+   - Search history and saved searches
+
+3. **Enhanced User Experience**
+   - Personalized user dashboards
+   - Custom themes and appearance settings
+   - Improved mobile experience
+   - Keyboard shortcuts for power users
+
+4. **Reporting and Analytics**
+   - Customizable report builder
+   - Data export in multiple formats
+   - Advanced filtering and visualization
+   - Scheduled report generation
+
+5. **System Integrations**
+   - Calendar integration for due dates
+   - Payment gateway for fines
+   - Single sign-on (SSO) options
+   - Social media sharing integration
+
+#### Long-Term Vision (6-12 Months)
+
+1. **Community Features**
+   - Member discussion forums
+   - Book clubs and reading groups
+   - Document reviews and recommendations
+   - Reading challenges and achievements
+
+2. **AI-Powered Enhancements**
+   - Intelligent document recommendations
+   - Automated categorization of new documents
+   - Natural language search processing
+   - Predictive analysis for collection development
+
+3. **Mobile Application**
+   - Native mobile apps for iOS and Android
+   - Offline access to essential features
+   - Mobile notification system
+   - Barcode scanning for self-checkout
+
+4. **Advanced Administration**
+   - Customizable workflow automation
+   - Document acquisition management
+   - Budget and cost tracking
+   - Staff scheduling and task management
+
+5. **Extended Content Support**
+   - Audio book integration
+   - Streaming media services
+   - Academic resource management
+   - Periodical and subscription tracking
+
+### Feature Request Process
+
+Library Sphere is continuously evolving based on user feedback. To request new features or enhancements:
+
+1. **Submit Feature Requests**
+   - Create an issue on the GitHub repository
+   - Use the "Feature Request" template
+   - Provide detailed description of the desired functionality
+   - Explain the use case and potential benefits
+
+2. **Feature Evaluation Criteria**
+   - Alignment with project goals
+   - User benefit and demand
+   - Implementation complexity
+   - Resource requirements
+   - Integration with existing features
+
+3. **Development Prioritization**
+   - Features are prioritized quarterly
+   - High-impact, low-effort features are prioritized
+   - Security and stability improvements take precedence
+   - Breaking changes are scheduled for major version updates
+
+// ... existing code ... 
