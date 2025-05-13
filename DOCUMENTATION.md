@@ -891,7 +891,569 @@ Several techniques are employed to ensure optimal client-side performance:
 
 ## User Guides
 
-*Sections to be completed*
+### Member Guide
+
+This guide provides detailed instructions for library members on how to use the Library Sphere system for browsing, borrowing, and managing their library activities.
+
+#### Account Management
+
+1. **Logging In**
+   
+   To access your member account:
+   
+   - Navigate to the login page at `/login`
+   - Select the "Member" option
+   - Enter your email and password
+   - Click "Sign In"
+   
+   If you forget your password, contact a library staff member for assistance.
+
+2. **Viewing Your Profile**
+   
+   To view your profile information:
+   
+   - Log in to your account
+   - Navigate to the "Account" section
+   - Here you can view your personal information, including:
+     - Name and contact details
+     - Library code
+     - Membership status
+
+3. **Account Security**
+   
+   Protect your account by:
+   
+   - Using a strong password
+   - Not sharing your login credentials
+   - Logging out when using public computers
+   - Reporting suspicious activity to library staff
+
+#### Browsing the Catalog
+
+1. **Accessing the Catalog**
+   
+   To browse available documents:
+   
+   - Navigate to the "Catalog" section from the main menu
+   - The catalog displays all library documents with availability status
+
+2. **Searching for Documents**
+   
+   To find specific documents:
+   
+   - Use the search bar at the top of the catalog page
+   - Enter keywords related to the title, author, or description
+   - Results update as you type
+
+3. **Filtering the Catalog**
+   
+   To narrow down results:
+   
+   - Use the filter options below the search bar
+   - Filter by category (Novel, Comics, VideoGame, Film)
+   - Filter by age rating (Kids, Teens, Adults)
+   - Filter by genre (Action, Adventure, Comedy, etc.)
+   - Reset filters using the "Reset Filters" button
+
+4. **Viewing Document Details**
+   
+   To see more information about a document:
+   
+   - Click the "View Details" button on a document card
+   - A dialog will appear showing complete information, including:
+     - Title, author, and year
+     - Category and genre
+     - Description
+     - Availability status
+     - ISBN and library code
+
+#### Borrowing Documents
+
+1. **Checking Availability**
+   
+   Before borrowing:
+   
+   - Look for availability status on document cards
+   - Available documents display a "Loan" button
+   - Unavailable documents show their status (On Loan, Reserved)
+
+2. **Loaning a Document**
+   
+   To borrow an available document:
+   
+   - Locate the document in the catalog
+   - Click the "Loan" button
+   - Confirm the loan request when prompted
+   - Upon success, the document will be added to your loans
+
+3. **Viewing Your Loans**
+   
+   To view your current loans:
+   
+   - Navigate to the "Loans" section from the main menu
+   - Here you can see all your active loans with:
+     - Loan date
+     - Expected return date
+     - Return status
+
+4. **Loan Restrictions**
+   
+   Be aware of the following loan limitations:
+   
+   - You can only have one copy of a document at a time
+   - There may be a maximum number of concurrent loans
+   - Some documents may have restricted loan periods
+   - You cannot loan documents reserved by other members
+
+#### Reserving Documents
+
+1. **Understanding Reservations**
+   
+   Reservations allow you to:
+   
+   - Request documents that are currently on loan
+   - Get priority access when the document becomes available
+   - Hold a document for a limited time
+
+2. **Creating a Reservation**
+   
+   To reserve a document:
+   
+   - Find the document in the catalog
+   - If it's unavailable, click the "Reserve" button
+   - Confirm the reservation when prompted
+   - Upon success, the document will be added to your reservations
+
+3. **Managing Reservations**
+   
+   To view and manage your reservations:
+   
+   - Navigate to the "Reservations" section from the main menu
+   - Here you can see:
+     - Pending reservations awaiting document availability
+     - Fulfilled reservations that are ready for pickup
+     - Reservation expiry dates
+
+4. **Reservation Restrictions**
+   
+   Be aware of the following reservation limitations:
+   
+   - You cannot reserve a document you already have on loan
+   - You can only have one reservation per document
+   - Reservations expire if not fulfilled within a certain period
+   - There may be a maximum number of concurrent reservations allowed
+
+#### Getting Help
+
+If you encounter any issues while using the system:
+
+1. **Contact Library Staff**
+   - Visit the library information desk
+   - Call the library help line
+   - Email the library support address
+
+2. **Common Issues**
+   - Login problems: Contact the library for credential reset
+   - Catalog browsing issues: Try refreshing the page or clearing browser cache
+   - Loan/reservation errors: Note the error message and report to staff
+
+3. **Feature Requests**
+   - Submit suggestions to the library administration
+   - Participate in user surveys to improve the system
+
+### Staff Guide
+
+This guide provides instructions for library staff members (employees and administrators) on how to use Library Sphere to manage the library's collection, members, and day-to-day operations.
+
+#### Staff Account Management
+
+1. **Logging In**
+   
+   To access your staff account:
+   
+   - Navigate to the login page at `/login`
+   - Select the "Staff" option
+   - Enter your email and password
+   - Click "Sign In"
+   
+   Staff accounts have elevated permissions compared to member accounts.
+
+2. **Understanding Staff Roles**
+   
+   Library Sphere supports two staff roles:
+   
+   - **Employee**: Regular staff with document and member management abilities
+   - **Admin**: Administrators with additional employee management capabilities
+   
+   Your role determines which features you can access in the system.
+
+3. **Account Security**
+   
+   Staff accounts have access to sensitive information, so follow these security practices:
+   
+   - Use a strong, unique password
+   - Never share your credentials
+   - Log out when leaving your workstation
+   - Report suspicious activities to system administrators
+
+#### Managing Documents
+
+1. **Viewing the Document Collection**
+   
+   To access the document management interface:
+   
+   - Navigate to the "Documents" section from the main menu
+   - Here you can see all documents in the library's collection
+   - Use search and filters to find specific documents
+
+2. **Adding New Documents**
+   
+   To add a new document to the collection:
+   
+   - Click "Add Document" button
+   - Fill in the required information:
+     - Title, author, and year
+     - Category (Novel, Comics, VideoGame, Film)
+     - Age rating (Kids, Teens, Adults)
+     - Genre and description
+     - ISBN (for books) and library code
+   - Upload a cover image if available
+   - Click "Save" to add the document
+
+3. **Editing Documents**
+   
+   To modify an existing document:
+   
+   - Find the document in the documents list
+   - Click "Edit" on the document you want to modify
+   - Update the information as needed
+   - Click "Save" to apply changes
+
+4. **Removing Documents**
+   
+   To remove a document from the collection:
+   
+   - Find the document in the documents list
+   - Click "Delete" on the document you want to remove
+   - Confirm the deletion when prompted
+   
+   Note: Documents with active loans cannot be deleted.
+
+#### Managing Members
+
+1. **Viewing Member Accounts**
+   
+   To access the member management interface:
+   
+   - Navigate to the "Members" section from the main menu
+   - Here you can see all registered library members
+   - Use search to find specific members by name, email, or code
+
+2. **Adding New Members**
+   
+   To register a new member:
+   
+   - Click "Add Member" button
+   - Fill in the required information:
+     - First and last name
+     - Contact information (email, phone)
+     - Address details
+     - Password for their account
+   - The system will generate a unique member code
+   - Click "Save" to create the member account
+
+3. **Editing Member Information**
+   
+   To update member details:
+   
+   - Find the member in the members list
+   - Click "Edit" on the member you want to modify
+   - Update the information as needed
+   - Click "Save" to apply changes
+
+4. **Viewing Member Activity**
+   
+   To see a member's library activity:
+   
+   - Find the member in the members list
+   - Click "View Details" to see their profile
+   - Here you can see:
+     - Current loans
+     - Loan history
+     - Active reservations
+     - Account status
+
+#### Managing Loans
+
+1. **Processing New Loans**
+   
+   To create a loan for a member:
+   
+   - Find the document in the catalog
+   - Verify it's available (not on loan or reserved)
+   - Click "Loan" and select the member from the list
+   - Confirm the loan details
+   - The system will record the loan and set the return date
+
+2. **Viewing Active Loans**
+   
+   To see all current loans:
+   
+   - Navigate to the "Loans" section from the main menu
+   - Here you can see all active loans with member and document information
+   - Use filters to view specific categories of loans
+
+3. **Processing Returns**
+   
+   To mark a document as returned:
+   
+   - Find the loan in the loans list
+   - Click "Return" on the loan you want to process
+   - Confirm the return action
+   - The system will update the document's availability
+
+4. **Managing Overdue Loans**
+   
+   To handle overdue items:
+   
+   - Use the "Overdue" filter in the loans section
+   - Contact members with overdue items
+   - Process returns when items are brought back
+   - Note any damages or issues with returned items
+
+#### Managing Reservations
+
+1. **Viewing Active Reservations**
+   
+   To see all current reservations:
+   
+   - Navigate to the "Reservations" section from the main menu
+   - Here you can see all pending and fulfilled reservations
+   - Use filters to view specific categories of reservations
+
+2. **Fulfilling Reservations**
+   
+   When a reserved document becomes available:
+   
+   - The system automatically shows it as available for fulfillment
+   - Find the reservation in the reservations list
+   - Click "Fulfill" on the reservation
+   - Confirm the fulfillment action
+   - The system will create a loan for the member
+
+3. **Cancelling Reservations**
+   
+   To cancel a reservation:
+   
+   - Find the reservation in the reservations list
+   - Click "Cancel" on the reservation you want to remove
+   - Provide a reason for cancellation
+   - Confirm the cancellation action
+
+4. **Managing Expired Reservations**
+   
+   The system automatically expires reservations after their hold period:
+   
+   - Expired reservations are marked accordingly
+   - You can filter to view expired reservations
+   - No action is needed as the system handles this automatically
+
+#### Staff-Only Features
+
+1. **Batch Processing**
+   
+   For efficiency with multiple items:
+   
+   - Use batch operations for processing multiple returns
+   - Generate reports for library usage statistics
+   - Export data for external record-keeping
+
+2. **System Notifications**
+   
+   Stay informed about library activities:
+   
+   - View notification center for important alerts
+   - See new reservations that need attention
+   - Monitor overdue loans that require follow-up
+
+3. **Member Communications**
+   
+   Contact members when needed:
+   
+   - Send reservation notifications
+   - Issue overdue reminders
+   - Communicate library announcements
+
+### Admin Guide
+
+This guide provides instructions specifically for library administrators on how to manage the Library Sphere system, including employee management and system configuration.
+
+#### Administrator Account
+
+1. **Admin Privileges**
+   
+   Administrator accounts have all the capabilities of regular staff members, plus:
+   
+   - Employee management
+   - System configuration
+   - Advanced reporting
+   - Data management
+
+2. **Accessing Admin Functions**
+   
+   To access administrator-specific functions:
+   
+   - Log in with an admin account
+   - Navigate to the appropriate section from the main menu
+   - Admin-only options will be visible in various sections of the application
+
+3. **Security Responsibilities**
+   
+   As an administrator, you have additional security responsibilities:
+   
+   - Regularly review system logs for suspicious activities
+   - Manage staff accounts and access permissions
+   - Ensure proper data backup procedures
+   - Monitor system performance and reliability
+
+#### Managing Employees
+
+1. **Viewing Employees**
+   
+   To access the employee management interface:
+   
+   - Navigate to the "Employees" section from the main menu
+   - Here you can see all library staff accounts
+   - Use search to find specific employees by name or email
+
+2. **Adding New Employees**
+   
+   To create a new staff account:
+   
+   - Click "Add Employee" button
+   - Fill in the required information:
+     - First and last name
+     - Contact information (email, phone)
+     - Address details
+     - Role (Employee or Admin)
+     - Initial password
+   - The system will generate a unique employee code
+   - Click "Save" to create the account
+
+3. **Editing Employee Information**
+   
+   To update staff details:
+   
+   - Find the employee in the employees list
+   - Click "Edit" on the employee you want to modify
+   - Update the information as needed
+   - Click "Save" to apply changes
+
+4. **Managing Employee Access**
+   
+   To change an employee's system access:
+   
+   - Find the employee in the employees list
+   - Click "Edit" on the employee
+   - Modify their role between "Employee" and "Admin"
+   - Save the changes to update permissions
+
+5. **Deactivating Employees**
+   
+   When staff members leave the organization:
+   
+   - Find the employee in the employees list
+   - Click "Deactivate" on the employee account
+   - Confirm the deactivation
+   - The account will be disabled but data will be preserved
+
+#### System Management
+
+1. **System Monitoring**
+   
+   To monitor system health:
+   
+   - Review login activity and access logs
+   - Check for failed authentication attempts
+   - Monitor system performance metrics
+   - Review error reports
+
+2. **Database Management**
+   
+   For database administration:
+   
+   - Coordinate with IT for database backups
+   - Plan for data archiving of old records
+   - Monitor database size and growth
+   - Manage database performance
+
+3. **System Updates**
+   
+   When system updates are available:
+   
+   - Review release notes for new features
+   - Plan for update deployment
+   - Test updates in a staging environment
+   - Coordinate with IT for production deployment
+
+#### Advanced Features
+
+1. **Reporting and Analytics**
+   
+   Access advanced system reports:
+   
+   - Library usage statistics
+   - Member activity metrics
+   - Collection utilization data
+   - Document popularity rankings
+   - Loan duration analytics
+
+2. **Data Export**
+   
+   Export system data for external use:
+   
+   - Generate CSV/Excel reports
+   - Create data backups
+   - Export membership information
+   - Prepare collection inventories
+
+3. **System Configuration**
+   
+   Customize system settings:
+   
+   - Set loan duration defaults
+   - Configure reservation policies
+   - Adjust system notifications
+   - Manage system-wide announcements
+
+#### Troubleshooting
+
+1. **Common Issues**
+   
+   Address frequently encountered problems:
+   
+   - Login and authentication issues
+   - Document availability discrepancies
+   - Reservation conflicts
+   - Data synchronization problems
+
+2. **Error Resolution**
+   
+   Resolve system errors:
+   
+   - Identify error source from logs
+   - Apply recommended fixes
+   - Restart services if necessary
+   - Contact system support for persistent issues
+
+3. **User Support**
+   
+   Provide assistance to staff and members:
+   
+   - Reset passwords when needed
+   - Train staff on system features
+   - Document common procedures
+   - Create help resources and guides
 
 ## Features Documentation
 
