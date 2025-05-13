@@ -22,6 +22,7 @@ export default function ReservationsPage() {
     const [filteredReservations, setFilteredReservations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const [documentAvailability, setDocumentAvailability] = useState({});
 
     useEffect(() => {
         async function fetchReservations() {
@@ -33,6 +34,26 @@ export default function ReservationsPage() {
                 const data = await response.json();
                 setReservations(data);
                 setFilteredReservations(data);
+
+                // Check availability for all documents in pending reservations
+                const pendingReservations = data.filter(res => res.status === "Pending");
+                const documentIds = [...new Set(pendingReservations.map(res => res.documentId))];
+
+                // Create an availability check for each document
+                const availabilityChecks = {};
+                for (const documentId of documentIds) {
+                    const docResponse = await fetch(`/api/documents?includeReservations=true`);
+                    const documents = await docResponse.json();
+
+                    // Find the matching document
+                    const document = documents.find(doc => doc.id === documentId);
+                    if (document) {
+                        // A document is available if it has no active loans
+                        availabilityChecks[documentId] = !document.loans?.some(loan => loan.status === 'Active');
+                    }
+                }
+
+                setDocumentAvailability(availabilityChecks);
                 setIsLoading(false);
             } catch (error) {
                 console.error("Error fetching reservations:", error);
@@ -65,19 +86,68 @@ export default function ReservationsPage() {
         setSearchQuery(e.target.value);
     };
 
-    const handleUpdateReservation = async (reservationId, status) => {
+    const handleFulfillReservation = async (reservationId) => {
+        try {
+            const response = await fetch("/api/reservations", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ reservationId }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Failed to fulfill reservation");
+            }
+
+            const result = await response.json();
+
+            // Update the reservation in the state
+            setReservations(
+                reservations.map((reservation) =>
+                    reservation.id === reservationId
+                        ? { ...reservation, status: "Fulfilled" }
+                        : reservation
+                )
+            );
+            setFilteredReservations(
+                filteredReservations.map((reservation) =>
+                    reservation.id === reservationId
+                        ? { ...reservation, status: "Fulfilled" }
+                        : reservation
+                )
+            );
+
+            toast.success("Reservation fulfilled successfully. Loan created.");
+
+            // Refresh availability data
+            const updatedAvailability = { ...documentAvailability };
+            const reservationDoc = reservations.find(r => r.id === reservationId)?.documentId;
+            if (reservationDoc) {
+                updatedAvailability[reservationDoc] = false; // Now not available
+            }
+            setDocumentAvailability(updatedAvailability);
+
+        } catch (error) {
+            console.error("Error fulfilling reservation:", error);
+            toast.error(error.message || "Failed to fulfill reservation");
+        }
+    };
+
+    const handleCancelReservation = async (reservationId) => {
         try {
             const response = await fetch("/api/reservations", {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ reservationId, status }),
+                body: JSON.stringify({ reservationId, status: "Cancelled" }),
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || `Failed to ${status.toLowerCase()} reservation`);
+                throw new Error(errorData.error || "Failed to cancel reservation");
             }
 
             // Update the reservation in the state
@@ -93,10 +163,10 @@ export default function ReservationsPage() {
                 )
             );
 
-            toast.success(`Reservation ${status.toLowerCase()} successfully`);
+            toast.success("Reservation cancelled successfully");
         } catch (error) {
-            console.error(`Error updating reservation:`, error);
-            toast.error(error.message || `Failed to update reservation`);
+            console.error("Error cancelling reservation:", error);
+            toast.error(error.message || "Failed to cancel reservation");
         }
     };
 
@@ -151,6 +221,7 @@ export default function ReservationsPage() {
                                 <TableHead>Reservation Date</TableHead>
                                 <TableHead>Expiry Date</TableHead>
                                 <TableHead>Status</TableHead>
+                                <TableHead>Availability</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -160,6 +231,7 @@ export default function ReservationsPage() {
                                     reservation.status === "Pending" &&
                                     new Date(reservation.expiryDate) < new Date();
                                 const isPending = reservation.status === "Pending";
+                                const isDocumentAvailable = documentAvailability[reservation.documentId];
 
                                 return (
                                     <TableRow key={reservation.id}>
@@ -197,13 +269,25 @@ export default function ReservationsPage() {
                                                 <Badge variant="default" className="bg-[#133b5c]">Fulfilled</Badge>
                                             )}
                                         </TableCell>
+                                        <TableCell>
+                                            {isPending && (
+                                                <Badge
+                                                    variant={isDocumentAvailable ? "success" : "outline"}
+                                                    className={isDocumentAvailable ? "bg-green-100 text-green-800 hover:bg-green-100" : ""}
+                                                >
+                                                    {isDocumentAvailable ? "Available" : "Unavailable"}
+                                                </Badge>
+                                            )}
+                                        </TableCell>
                                         <TableCell className="text-right">
                                             {isPending && (
                                                 <div className="flex justify-end gap-2">
                                                     <Button
                                                         size="sm"
-                                                        onClick={() => handleUpdateReservation(reservation.id, "Fulfilled")}
+                                                        onClick={() => handleFulfillReservation(reservation.id)}
                                                         className="h-8 gap-1"
+                                                        disabled={!isDocumentAvailable}
+                                                        title={!isDocumentAvailable ? "Document is currently on loan" : ""}
                                                     >
                                                         <Check className="h-4 w-4" />
                                                         <span>Fulfill</span>
@@ -211,7 +295,7 @@ export default function ReservationsPage() {
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
-                                                        onClick={() => handleUpdateReservation(reservation.id, "Cancelled")}
+                                                        onClick={() => handleCancelReservation(reservation.id)}
                                                         className="h-8 gap-1"
                                                     >
                                                         <X className="h-4 w-4" />
