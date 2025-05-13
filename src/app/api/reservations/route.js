@@ -100,77 +100,90 @@ export async function POST(request) {
             );
         }
 
-        // Check if document exists
-        const document = await prisma.document.findUnique({
-            where: { id: documentId },
-            include: {
-                loans: {
-                    where: {
-                        actualReturnDate: null,
+        // Use a transaction to ensure atomicity
+        const result = await prisma.$transaction(async (tx) => {
+            // Check if document exists with detailed loan information
+            const document = await tx.document.findUnique({
+                where: { id: documentId },
+                include: {
+                    loans: {
+                        where: {
+                            status: 'Active',
+                        },
+                        select: {
+                            id: true,
+                            memberId: true,
+                            status: true
+                        }
+                    },
+                    reservations: {
+                        where: {
+                            status: 'Pending',
+                        },
                     },
                 },
-                reservations: {
-                    where: {
-                        status: 'Pending',
+            });
+
+            if (!document) {
+                throw new Error('Document not found');
+            }
+
+            // Debug log for loan information
+            console.log(`Document ${documentId} has ${document.loans.length} active loans`);
+            if (document.loans.length > 0) {
+                console.log(`Loan details:`, JSON.stringify(document.loans));
+            }
+
+            // Check if the document is available (if it is, loan it directly instead of reservation)
+            if (document.loans.length === 0) {
+                throw new Error('Document is available. You can loan it directly.');
+            }
+
+            // Check if the member already has an active loan for this document
+            const activeUserLoan = document.loans.find(loan => loan.memberId === targetMemberId);
+            if (activeUserLoan) {
+                throw new Error('You already have this document on loan');
+            }
+
+            // Check if there's already any pending reservation for this document (from any member)
+            if (document.reservations.length > 0) {
+                throw new Error('This document is already reserved by another member');
+            }
+
+            // Create a reservation with a 14-day expiry period
+            const reservationDate = new Date();
+            const expiryDate = new Date(reservationDate);
+            expiryDate.setDate(expiryDate.getDate() + 14);
+
+            const reservation = await tx.reservation.create({
+                data: {
+                    memberId: targetMemberId,
+                    documentId,
+                    reservationDate,
+                    expiryDate,
+                    status: 'Pending',
+                },
+                include: {
+                    document: true,
+                    member: {
+                        select: {
+                            code: true,
+                            firstName: true,
+                            lastName: true,
+                        },
                     },
                 },
-            },
+            });
+
+            return reservation;
         });
 
-        if (!document) {
-            return NextResponse.json(
-                { error: 'Document not found' },
-                { status: 404 }
-            );
-        }
-
-        // Check if the document is available (if it is, loan it directly instead of reservation)
-        if (document.loans.length === 0) {
-            return NextResponse.json(
-                { error: 'Document is available. You can loan it directly.' },
-                { status: 400 }
-            );
-        }
-
-        // Check if there's already any pending reservation for this document (from any member)
-        if (document.reservations.length > 0) {
-            return NextResponse.json(
-                { error: 'This document is already reserved by another member' },
-                { status: 400 }
-            );
-        }
-
-        // Create a reservation with a 14-day expiry period
-        const reservationDate = new Date();
-        const expiryDate = new Date(reservationDate);
-        expiryDate.setDate(expiryDate.getDate() + 14);
-
-        const reservation = await prisma.reservation.create({
-            data: {
-                memberId: targetMemberId,
-                documentId,
-                reservationDate,
-                expiryDate,
-                status: 'Pending',
-            },
-            include: {
-                document: true,
-                member: {
-                    select: {
-                        code: true,
-                        firstName: true,
-                        lastName: true,
-                    },
-                },
-            },
-        });
-
-        return NextResponse.json(reservation);
+        return NextResponse.json(result);
     } catch (error) {
         console.error('Error creating reservation:', error);
         return NextResponse.json(
-            { error: 'Failed to create reservation' },
-            { status: 500 }
+            { error: error.message || 'Failed to create reservation' },
+            { status: 400 }
         );
     }
 }

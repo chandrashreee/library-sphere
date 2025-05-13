@@ -296,6 +296,11 @@ export default function CatalogPage() {
                             pendingReservation &&
                             pendingReservation.memberId === session.user.id;
 
+                        // Check if the current user has this document on loan
+                        const isLoanedByUser = session && document.loans?.some(loan =>
+                            loan.status === 'Active' && loan.memberId === session.user.id
+                        );
+
                         return (
                             <Card key={document.id} className="overflow-hidden">
                                 <div className="aspect-[2/3] relative">
@@ -395,6 +400,14 @@ export default function CatalogPage() {
                                                     disabled
                                                 >
                                                     Already Reserved
+                                                </Button>
+                                            ) : isLoanedByUser ? (
+                                                <Button
+                                                    className="flex-1"
+                                                    variant="outline"
+                                                    disabled
+                                                >
+                                                    You Have This On Loan
                                                 </Button>
                                             ) : (
                                                 <Button
