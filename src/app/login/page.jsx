@@ -120,21 +120,6 @@ function LoginForm() {
                     </Button>
                 </CardFooter>
             </form>
-            <div className="p-6 pt-0">
-                <div className="rounded-lg border p-3">
-                    <h3 className="mb-2 font-medium">Demo Accounts</h3>
-                    <div className="text-sm text-muted-foreground">
-                        <div className="grid grid-cols-[80px_1fr] gap-1">
-                            <span className="font-medium">Member:</span>
-                            <span>john.doe@example.com / password123</span>
-                            <span className="font-medium">Employee:</span>
-                            <span>robert.taylor@library.com / employee123</span>
-                            <span className="font-medium">Admin:</span>
-                            <span>sarah.davis@library.com / admin123</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </Card>
     );
 }
