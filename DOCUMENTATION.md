@@ -1879,6 +1879,538 @@ The loan system implements comprehensive error handling:
    - Status tracking for loan lifecycle
    - Future enhancement may add detailed activity logging
 
+### Reservation System
+
+The Reservation System allows members to request documents that are currently unavailable, providing a fair and organized way to manage access to popular items in the library collection.
+
+#### Overview
+
+The reservation system enables:
+
+- Requesting currently loaned documents
+- Tracking pending, fulfilled, and cancelled reservations
+- Prioritizing access based on reservation order
+- Managing the reservation lifecycle
+- Converting reservations to loans when items become available
+
+#### Implementation Details
+
+1. **Reservation Data Model**
+   
+   The Reservation entity is defined in the Prisma schema as:
+   
+   ```prisma
+   model Reservation {
+     id                 String        @id @default(auto()) @map("_id") @db.ObjectId
+     member             Member        @relation(fields: [memberId], references: [id])
+     memberId           String        @db.ObjectId
+     document           Document      @relation(fields: [documentId], references: [id])
+     documentId         String        @db.ObjectId
+     reservationDate    DateTime      @default(now())
+     expiryDate         DateTime
+     status             String        // Pending, Fulfilled, Cancelled
+     createdAt          DateTime      @default(now())
+     updatedAt          DateTime      @updatedAt
+
+     @@unique([memberId, documentId, reservationDate])
+   }
+   ```
+   
+   Key features of the model:
+   - Relationships to Member and Document
+   - Reservation creation date
+   - Expiry date for time-limited holds
+   - Status field to track reservation state
+   - Unique constraint to prevent duplicate reservations
+
+2. **Reservation API Endpoints**
+   
+   Reservation operations are handled by the `/api/reservations` endpoint:
+   
+   - `GET /api/reservations`: Retrieve reservations with optional filtering
+   - `POST /api/reservations`: Create a new reservation
+   - `PUT /api/reservations`: Update a reservation (fulfill or cancel)
+   - `DELETE /api/reservations/:id`: Delete a reservation (administrative function)
+
+3. **Reservation Creation Process**
+   
+   Creating a reservation involves several validation steps:
+   
+   ```javascript
+   // Check if document exists
+   const document = await prisma.document.findUnique({
+     where: { id: documentId },
+     include: {
+       loans: {
+         where: { status: "Active" }
+       },
+       reservations: {
+         where: { status: "Pending" }
+       }
+     }
+   });
+   
+   if (!document) {
+     return res.status(404).json({ error: "Document not found" });
+   }
+   
+   // Check if document is already available (no active loans)
+   if (document.loans.length === 0) {
+     return res.status(400).json({ error: "Document is available for loan, no need to reserve" });
+   }
+   
+   // Check if user already has an active loan for this document
+   const existingLoan = await prisma.loan.findFirst({
+     where: {
+       memberId,
+       documentId,
+       status: "Active"
+     }
+   });
+   
+   if (existingLoan) {
+     return res.status(400).json({ error: "You already have this document on loan" });
+   }
+   
+   // Check if user already has a pending reservation for this document
+   const existingReservation = await prisma.reservation.findFirst({
+     where: {
+       memberId,
+       documentId,
+       status: "Pending"
+     }
+   });
+   
+   if (existingReservation) {
+     return res.status(400).json({ error: "You already have a pending reservation for this document" });
+   }
+   
+   // Create the reservation
+   const reservation = await prisma.reservation.create({
+     data: {
+       memberId,
+       documentId,
+       expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+       status: "Pending"
+     }
+   });
+   ```
+
+4. **Reservation Fulfillment Process**
+   
+   When a document becomes available, staff can fulfill a reservation:
+   
+   ```javascript
+   // Transaction to fulfill reservation and create loan
+   const result = await prisma.$transaction(async (tx) => {
+     // Mark the reservation as fulfilled
+     const updatedReservation = await tx.reservation.update({
+       where: { id: reservationId },
+       data: { status: "Fulfilled" },
+       include: { member: true, document: true }
+     });
+     
+     // Create a new loan for the member
+     const loan = await tx.loan.create({
+       data: {
+         memberId: updatedReservation.memberId,
+         documentId: updatedReservation.documentId,
+         expectedReturnDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days
+         status: "Active"
+       }
+     });
+     
+     return { updatedReservation, loan };
+   });
+   ```
+
+5. **Reservation Cancellation**
+   
+   Members or staff can cancel pending reservations:
+   
+   ```javascript
+   const updatedReservation = await prisma.reservation.update({
+     where: { id: reservationId },
+     data: { status: "Cancelled" }
+   });
+   ```
+
+6. **Reservations Page Implementation**
+   
+   The Reservations page (`src/app/reservations/page.jsx`) provides:
+   
+   - Display of all reservations for the current user
+   - For staff, a view of all pending reservations
+   - Fulfill and cancel actions based on user role
+   - Status indicators for pending, fulfilled, and cancelled reservations
+
+#### Business Rules
+
+1. **Reservation Eligibility**
+   
+   A document can be reserved if:
+   
+   - It is currently on loan (not available)
+   - The member doesn't already have it on loan
+   - The member doesn't already have a pending reservation for it
+
+2. **Reservation Duration**
+   
+   - Default reservation hold period is 7 days after the document becomes available
+   - The system calculates expiry dates automatically
+   - Future enhancement may allow for configurable hold periods
+
+3. **Reservation Limits**
+   
+   - Members can only have one pending reservation per document
+   - Future enhancement may add maximum concurrent reservations per member
+
+4. **Reservation Priority**
+   
+   - Reservations are fulfilled on a first-come, first-served basis
+   - When a document is returned, the system identifies if there are pending reservations
+   - Staff are notified of documents with pending reservations
+
+#### User Interfaces
+
+1. **Catalog Integration**
+   
+   - "Reserve" button on unavailable documents
+   - Reservation status indicators on document cards
+   - Toast notifications for reservation operations
+
+2. **Reservations Page**
+   
+   - Lists all reservations for the current user
+   - For staff, shows all reservations with member information
+   - Provides filtering options (pending, fulfilled, cancelled)
+   - Shows reservation date and expiry date
+
+3. **Account Page**
+   
+   - Shows current reservations in the member profile
+   - Provides quick access to reservation status
+
+#### Staff Functions
+
+1. **Fulfillment Workflow**
+   
+   Staff can fulfill reservations through:
+   
+   - The Reservations page
+   - The Catalog page when viewing a document with pending reservations
+   - Automatic prompts when returning a document with pending reservations
+
+2. **Reservation Management**
+   
+   Staff can:
+   
+   - View all pending reservations
+   - Cancel reservations when necessary
+   - See reservation history for members
+   - Monitor reservation expirations
+
+#### Error Handling
+
+The reservation system implements comprehensive error handling:
+
+1. **Validation Errors**
+   
+   - Document already available
+   - Document already on loan to the member
+   - Document already reserved by the member
+   - Invalid member or document IDs
+
+2. **Transaction Safety**
+   
+   - Database transactions for reservation fulfillment
+   - Atomicity for reservation-to-loan conversion
+   - Concurrency handling for simultaneous operations
+
+3. **User Feedback**
+   
+   - Specific error messages for different scenarios
+   - Success notifications for reservation operations
+   - Visual indicators of reservation status
+
+#### Performance and Security
+
+1. **Optimized Queries**
+   
+   - Efficient database queries for reservation status checks
+   - Minimal database operations for common actions
+   - Transaction use only where necessary
+
+2. **Security Measures**
+   
+   - Authentication required for all reservation operations
+   - Authorization checks for different user roles
+   - Data validation to prevent invalid reservations
+
+3. **Scalability Considerations**
+   
+   - Indexing for efficient reservation lookups
+   - Pagination for libraries with many reservations
+   - Status-based filtering to reduce data transfer
+
+### Member Management
+
+The Member Management system handles all aspects of library patron accounts, including registration, profile management, and activity tracking.
+
+#### Overview
+
+The member management system enables:
+
+- Managing library patron accounts
+- Tracking member personal information
+- Monitoring member activity (loans and reservations)
+- Managing member authentication
+- Enforcing member-specific business rules
+
+#### Implementation Details
+
+1. **Member Data Model**
+   
+   The Member entity is defined in the Prisma schema as:
+   
+   ```prisma
+   model Member {
+     id                 String        @id @default(auto()) @map("_id") @db.ObjectId
+     code               String        @unique
+     firstName          String
+     lastName           String
+     street             String
+     city               String
+     province           String
+     phone              String
+     email              String        @unique
+     password           String
+     createdAt          DateTime      @default(now())
+     updatedAt          DateTime      @updatedAt
+     loans              Loan[]
+     reservations       Reservation[]
+   }
+   ```
+   
+   Key features of the model:
+   - Unique member code for identification
+   - Personal and contact information
+   - Email and password for authentication
+   - Relationships to loans and reservations
+   - Timestamps for creation and updates
+
+2. **Member API Endpoints**
+   
+   Member operations are handled by the `/api/members` endpoint:
+   
+   - `GET /api/members`: Retrieve members with optional filtering
+   - `GET /api/members/:id`: Get a specific member's details
+   - `POST /api/members`: Create a new member
+   - `PUT /api/members/:id`: Update member information
+   - `DELETE /api/members/:id`: Delete a member (administrative function)
+
+3. **Member Authentication**
+   
+   Members authenticate using NextAuth.js with a credentials provider:
+   
+   ```javascript
+   // NextAuth configuration
+   export const authOptions = {
+     providers: [
+       CredentialsProvider({
+         name: "Credentials",
+         credentials: {
+           email: { label: "Email", type: "email" },
+           password: { label: "Password", type: "password" },
+           role: { label: "Role", type: "text" }
+         },
+         async authorize(credentials) {
+           if (!credentials?.email || !credentials?.password || !credentials?.role) {
+             return null;
+           }
+           
+           // Check if logging in as a member
+           if (credentials.role === "member") {
+             const member = await prisma.member.findUnique({
+               where: { email: credentials.email }
+             });
+             
+             if (!member) return null;
+             
+             const passwordMatch = await bcrypt.compare(credentials.password, member.password);
+             
+             if (!passwordMatch) return null;
+             
+             return {
+               id: member.id,
+               email: member.email,
+               name: `${member.firstName} ${member.lastName}`,
+               role: "member"
+             };
+           }
+           
+           // Employee login logic...
+         }
+       })
+     ],
+     // Session configuration...
+   };
+   ```
+
+4. **Member Registration**
+   
+   Creating a new member account:
+   
+   ```javascript
+   // Generate unique member code
+   const memberCode = generateMemberCode();
+   
+   // Hash password
+   const hashedPassword = await bcrypt.hash(password, 10);
+   
+   // Create member
+   const member = await prisma.member.create({
+     data: {
+       code: memberCode,
+       firstName,
+       lastName,
+       street,
+       city,
+       province,
+       phone,
+       email,
+       password: hashedPassword
+     }
+   });
+   ```
+
+5. **Members Page Implementation**
+   
+   The Members page (`src/app/members/page.jsx`) provides:
+   
+   - List of all library members (staff-only view)
+   - Search and filtering capabilities
+   - Member detail view
+   - Edit and delete functions
+   - Activity summary
+
+#### Business Rules
+
+1. **Member Uniqueness**
+   
+   - Each member has a unique email address
+   - Each member has a unique identifying code
+   - Duplicate registrations are prevented
+
+2. **Password Security**
+   
+   - Passwords are hashed using bcrypt
+   - Minimum password strength requirements
+   - Secure password reset process
+
+3. **Access Controls**
+   
+   - Members can only view and edit their own information
+   - Staff can view all member information
+   - Only administrators can delete member accounts
+
+4. **Activity Restrictions**
+   
+   - Members with overdue items may have borrowing restricted
+   - Maximum concurrent loans and reservations
+   - Account status tracking (active, suspended, etc.)
+
+#### User Interfaces
+
+1. **Member Profile**
+   
+   - Account page for viewing personal information
+   - Profile edit functionality
+   - Activity summary (current loans and reservations)
+   - Account status indicators
+
+2. **Staff Member Management**
+   
+   - Members list with search and filtering
+   - Member detail view with full history
+   - Member creation and editing interface
+   - Activity management (override restrictions, etc.)
+
+3. **Registration Form**
+   
+   - New member registration interface
+   - Form validation and error handling
+   - Confirmation process
+
+#### Data Management
+
+1. **Personal Information**
+   
+   Personal data is handled with privacy considerations:
+   
+   - Only necessary information is collected
+   - Access to personal data is restricted
+   - Data is protected through authentication
+   - Future enhancement may include data anonymization options
+
+2. **Activity Tracking**
+   
+   Member activity is tracked for:
+   
+   - Current and past loans
+   - Reservation history
+   - Login activity (future enhancement)
+   - Account modifications
+
+3. **Data Integrity**
+   
+   Member data is protected through:
+   
+   - Input validation
+   - Referential integrity with related entities
+   - Proper error handling
+   - Backup and recovery procedures
+
+#### Security Considerations
+
+1. **Authentication**
+   
+   - Secure login process
+   - Session management via NextAuth.js
+   - Protection against common attacks (brute force, etc.)
+
+2. **Authorization**
+   
+   - Role-based access control
+   - Path-based route protection
+   - API endpoint security
+
+3. **Data Protection**
+   
+   - Password hashing
+   - HTTPS for all communications
+   - Protection against sensitive data exposure
+
+#### User Experience Features
+
+1. **Self-Service**
+   
+   - Members can update their own contact information
+   - Password change functionality
+   - Activity history viewing
+
+2. **Notifications**
+   
+   - Future enhancement: email notifications for account changes
+   - Success and error messages for operations
+   - Status updates for account actions
+
+3. **Accessibility**
+   
+   - Keyboard navigation support
+   - Screen reader compatibility
+   - Responsive design for all devices
+
 ## API Reference
 
 *Sections to be completed*
