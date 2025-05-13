@@ -20,19 +20,19 @@
    3. [Authentication](#authentication)
    4. [Client-Side Pages](#client-side-pages)
 
-4. [User Guides](#user-guides)
+5. [User Guides](#user-guides)
    1. [Member Guide](#member-guide)
    2. [Staff Guide](#staff-guide)
    3. [Admin Guide](#admin-guide)
 
-5. [Features Documentation](#features-documentation)
+6. [Features Documentation](#features-documentation)
    1. [Catalog Management](#catalog-management)
    2. [Loan Management](#loan-management)
    3. [Reservation System](#reservation-system)
    4. [Member Management](#member-management)
    5. [Staff Administration](#staff-administration)
 
-6. [API Reference](#api-reference)
+7. [API Reference](#api-reference)
    1. [Authentication Endpoints](#authentication-endpoints)
    2. [Document Endpoints](#document-endpoints)
    3. [Loan Endpoints](#loan-endpoints)
@@ -40,7 +40,7 @@
    5. [Member Endpoints](#member-endpoints)
    6. [Employee Endpoints](#employee-endpoints)
 
-7. [Database Schema](#database-schema)
+8. [Database Schema](#database-schema)
    1. [Member Model](#member-model)
    2. [Employee Model](#employee-model)
    3. [Document Model](#document-model)
@@ -48,17 +48,17 @@
    5. [Reservation Model](#reservation-model)
    6. [NextAuth Models](#nextauth-models)
 
-8. [Development](#development)
+9. [Development](#development)
    1. [Project Structure](#project-structure)
    2. [Coding Conventions](#coding-conventions)
    3. [Testing](#testing)
    4. [Contributing](#contributing)
 
-9. [Troubleshooting](#troubleshooting)
-   1. [Common Issues](#common-issues)
-   2. [Debugging Tips](#debugging-tips)
+10. [Troubleshooting](#troubleshooting)
+    1. [Common Issues](#common-issues)
+    2. [Debugging Tips](#debugging-tips)
 
-10. [Changelog](#changelog)
+11. [Changelog](#changelog)
     1. [Version History](#version-history)
     2. [Upcoming Features](#upcoming-features)
 
@@ -694,6 +694,200 @@ API routes are implemented as serverless functions that run on-demand:
    - Consistent JSON structure
    - Appropriate HTTP status codes
    - CORS headers for cross-origin requests
+
+### Authentication
+
+Library Sphere implements a comprehensive authentication system using NextAuth.js to secure the application and manage user sessions. The authentication system supports different user roles with varying permissions and access levels.
+
+#### Authentication Architecture
+
+The authentication system follows a token-based approach with the following components:
+
+1. **NextAuth.js Integration**
+   - Central authentication provider for the application
+   - Handles session management and token generation
+   - Provides API routes for authentication operations
+
+2. **Credentials Provider**
+   - Email and password authentication
+   - Role-based login flow (member vs. staff)
+   - Password validation and security measures
+
+3. **Session Management**
+   - JWT (JSON Web Token) based sessions
+   - Secure cookie storage for session information
+   - Server-side session validation
+
+4. **User Roles and Permissions**
+   - Three distinct roles: Member, Employee, and Admin
+   - Role-specific access controls
+   - Permission-based feature availability
+
+#### Authentication Flow
+
+The authentication process follows this sequence:
+
+1. **Login Request**
+   - User submits credentials (email, password, and role)
+   - Credentials are sent to the NextAuth API endpoint
+
+2. **Credential Verification**
+   - System checks credentials against the appropriate collection (Member or Employee)
+   - Password is verified using bcrypt comparison
+   - Role is validated to ensure the user exists in the correct collection
+
+3. **Session Creation**
+   - Upon successful verification, NextAuth generates a JWT
+   - User information and role are encoded in the token
+   - Session is established with appropriate expiration time
+
+4. **Session Persistence**
+   - Session token is stored in a secure HTTP-only cookie
+   - Token is refreshed automatically when needed
+   - Session information is available to API routes for authorization
+
+5. **Authorization Checks**
+   - Protected routes verify the user's session and role
+   - API endpoints validate permissions before processing requests
+   - UI components conditionally render based on user role
+
+#### Security Measures
+
+The authentication system implements several security best practices:
+
+1. **Password Security**
+   - Passwords are hashed using bcrypt before storage
+   - No plaintext passwords are stored in the database
+   - Strong password policies are enforced
+
+2. **Token Security**
+   - JWTs are signed with a secure secret
+   - Tokens have appropriate expiration times
+   - HTTP-only cookies prevent client-side token access
+
+3. **CSRF Protection**
+   - Cross-Site Request Forgery protection via NextAuth
+   - Token validation on state-changing operations
+   - Secure cookie configuration
+
+4. **Session Validation**
+   - Server-side validation of all session tokens
+   - Expired sessions are automatically invalidated
+   - Invalid sessions redirect to the login page
+
+5. **Role Separation**
+   - Strict separation between member and staff access
+   - Clear boundaries between employee and admin capabilities
+   - UI and API-level enforcement of role permissions
+
+### Client-Side Pages
+
+Library Sphere follows the Next.js App Router architecture to create a responsive, performant user interface. This section describes the client-side page structure, routing system, and component architecture.
+
+#### Page Architecture
+
+The application uses a modular page structure organized by feature:
+
+1. **Public Pages**
+   - `/login`: Authentication page for all users
+   - `/catalog`: Document browsing interface (accessible to all users)
+
+2. **Member Pages**
+   - `/account`: Member profile and personal information
+   - `/loans`: View and manage loans
+   - `/reservations`: View and manage reservations
+
+3. **Staff Pages**
+   - `/members`: Manage library members
+   - `/employees`: Manage staff accounts (admin only)
+   - `/documents`: Manage the document collection
+
+#### Routing System
+
+The routing system is built on Next.js App Router, which provides:
+
+1. **File-Based Routing**
+   - Pages defined by file structure in the `app` directory
+   - Dynamic routes using folder naming conventions
+   - Automatic route handling and navigation
+
+2. **Route Protection**
+   - Middleware-based route protection
+   - Role-based access control
+   - Redirect logic for unauthorized access
+
+3. **Navigation Components**
+   - Role-specific navigation menu
+   - Dynamic route highlighting
+   - Responsive mobile navigation
+
+#### Component Architecture
+
+The application follows a component-based architecture with several layers:
+
+1. **Layout Components**
+   - `MainLayout`: Primary application layout with navigation
+   - `AuthLayout`: Layout for authentication pages
+   - `DashboardLayout`: Layout for authenticated user pages
+
+2. **Page Components**
+   - Page-specific components with business logic
+   - Integration with API routes for data fetching
+   - State management for user interactions
+
+3. **UI Components**
+   - Shared components from shadcn/ui library
+   - Custom components for specific UI patterns
+   - Consistent styling through Tailwind CSS
+
+4. **Feature Components**
+   - Document display components
+   - Loan management components
+   - Reservation handling components
+   - User profile components
+
+#### State Management
+
+Client-side state is managed through a combination of approaches:
+
+1. **React Hooks**
+   - `useState` for component-level state
+   - `useEffect` for side effects and data fetching
+   - `useContext` for cross-component state sharing
+
+2. **Server State**
+   - API-driven data fetching
+   - Optimistic UI updates
+   - Error handling and loading states
+
+3. **Form State**
+   - React Hook Form for form state management
+   - Zod validation for data validation
+   - Controlled inputs for complex forms
+
+#### Client-Side Performance Optimizations
+
+Several techniques are employed to ensure optimal client-side performance:
+
+1. **Component Optimization**
+   - Lazy loading for non-essential components
+   - Memoization of expensive computations
+   - Virtualized lists for large data sets
+
+2. **Data Fetching**
+   - Request deduplication
+   - Caching strategies
+   - Pagination for large data sets
+
+3. **UI Responsiveness**
+   - Loading states and skeletons
+   - Optimistic UI updates
+   - Debounced inputs for search operations
+
+4. **Rendering Strategies**
+   - Client Components for interactive elements
+   - Strategic use of suspense boundaries
+   - Error boundaries for fault tolerance
 
 ## User Guides
 
