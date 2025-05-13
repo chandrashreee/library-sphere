@@ -5110,23 +5110,22 @@ The following features are planned for future releases of Library Sphere:
 
 ### Feature Request Process
 
-Library Sphere is continuously evolving based on user feedback. To request new features or enhancements:
+Library Sphere is continuously evolving based on user feedback. To suggest new features or enhancements:
 
-1. **Submit Feature Requests**
-   - Create an issue on the GitHub repository
-   - Use the "Feature Request" template
-   - Provide detailed description of the desired functionality
-   - Explain the use case and potential benefits
+1. **How to Submit Feature Requests**
+   - Reach out directly to the development team via email
+   - Provide a clear, detailed description of the desired functionality
+   - Explain the use case and potential benefits for library users or staff
+   - If possible, include examples of similar features in other systems
 
-2. **Feature Evaluation Criteria**
-   - Alignment with project goals
-   - User benefit and demand
-   - Implementation complexity
-   - Resource requirements
-   - Integration with existing features
+2. **What Happens After Submission**
+   - The development team will review all feature requests
+   - You may be contacted for additional information or clarification
+   - Approved features will be added to the development roadmap
+   - You will be notified when a feature you requested is implemented
 
-3. **Development Prioritization**
-   - Features are prioritized quarterly
-   - High-impact, low-effort features are prioritized
-   - Security and stability improvements take precedence
-   - Breaking changes are scheduled for major version updates
+3. **Feature Prioritization Approach**
+   - Features are assessed based on overall value to users
+   - Implementation complexity and resource requirements are considered
+   - Integration with existing functionality is evaluated
+   - Security and stability improvements are given high priority
