@@ -1,0 +1,128 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Member {
+  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
+  code               String        @unique
+  firstName          String
+  lastName           String
+  street             String
+  city               String
+  province           String
+  phone              String
+  email              String        @unique
+  password           String
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  loans              Loan[]
+  reservations       Reservation[]
+}
+
+model Employee {
+  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
+  code               String        @unique
+  firstName          String
+  lastName           String
+  street             String
+  city               String
+  province           String
+  phone              String
+  email              String        @unique
+  password           String
+  role               String        // employee or admin
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+}
+
+model Document {
+  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
+  code               String        @unique
+  title              String
+  author             String
+  year               Int
+  category           String        // Novel, Comics, Games, etc.
+  classifying        String        // Kids, Teens, Adults
+  type               String        // Comedy, Drama, Horror, etc.
+  description        String
+  ISBN               String?       // Optional for books
+  imagePath          String?       // Optional path to image
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  loans              Loan[]
+  reservations       Reservation[]
+}
+
+model Loan {
+  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
+  member             Member        @relation(fields: [memberId], references: [id])
+  memberId           String        @db.ObjectId
+  document           Document      @relation(fields: [documentId], references: [id])
+  documentId         String        @db.ObjectId
+  loanDate           DateTime      @default(now())
+  expectedReturnDate DateTime
+  actualReturnDate   DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@unique([memberId, documentId, loanDate])
+}
+
+model Reservation {
+  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
+  member             Member        @relation(fields: [memberId], references: [id])
+  memberId           String        @db.ObjectId
+  document           Document      @relation(fields: [documentId], references: [id])
+  documentId         String        @db.ObjectId
+  reservationDate    DateTime      @default(now())
+  expiryDate         DateTime
+  status             String        // Pending, Fulfilled, Cancelled
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@unique([memberId, documentId, reservationDate])
+}
+
+model Account {
+  id                 String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId             String  @db.ObjectId
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String? @db.String
+  access_token       String? @db.String
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String? @db.String
+  session_state      String?
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+}
+
+model VerificationToken {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
