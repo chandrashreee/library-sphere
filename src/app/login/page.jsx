@@ -91,13 +91,13 @@ function LoginForm() {
                             onChange={handleChange}
                         />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 mb-4">
                         <Label>I am a:</Label>
                         <RadioGroup
                             defaultValue="member"
                             value={formData.role}
                             onValueChange={handleRoleChange}
-                            className="flex space-x-4"
+                            className="flex space-x-4 mt-2"
                         >
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="member" id="member" />
